@@ -1,0 +1,28 @@
+{
+  "name": "cassia-bake-studio",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "server": "node server.js",
+    "dev:full": "concurrently \"npm run server\" \"npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "vite": "^5.4.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.3.1",
+    "helmet": "^8.1.0",
+    "nodemailer": "^6.9.8",
+    "razorpay": "^2.9.6",
+    "sql.js": "^1.14.1",
+    "stripe": "^14.17.0"
+  }
+}

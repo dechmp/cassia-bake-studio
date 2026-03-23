@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Environment variables (contains secrets)
+.env
+
+# Build output
+dist/
+
+# Database (runtime data)
+data/
+
+# Claude Code
+.claude/
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
