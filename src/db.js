@@ -211,6 +211,34 @@ function createSchema() {
     );
   `);
   db.run(`CREATE INDEX IF NOT EXISTS idx_status_log_order ON order_status_log(order_id);`);
+
+  // ── Campaigns ─────────────────────────────────────────────────────────────
+  db.run(`
+    CREATE TABLE IF NOT EXISTS campaigns (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      title           TEXT    NOT NULL,
+      subject         TEXT    NOT NULL,
+      body_html       TEXT    NOT NULL,
+      audience        TEXT    NOT NULL DEFAULT 'all',
+      status          TEXT    NOT NULL DEFAULT 'draft'
+                              CHECK(status IN ('draft','sent')),
+      recipient_count INTEGER NOT NULL DEFAULT 0,
+      sent_at         TEXT,
+      created_at      TEXT    NOT NULL DEFAULT (datetime('now')),
+      updated_at      TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS campaign_recipients (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      campaign_id INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+      email       TEXT    NOT NULL,
+      first_name  TEXT    NOT NULL DEFAULT '',
+      sent_at     TEXT    NOT NULL DEFAULT (datetime('now')),
+      status      TEXT    NOT NULL DEFAULT 'sent' CHECK(status IN ('sent','failed'))
+    );
+  `);
+  db.run(`CREATE INDEX IF NOT EXISTS idx_cr_campaign ON campaign_recipients(campaign_id);`);
 }
 
 // ── Migrate existing JSON → SQLite (runs once; skips if data exists) ────────
@@ -408,15 +436,30 @@ export function getOrders({ status, email, from, to, search } = {}) {
   }
 
   const orders = rowsToObjects(db.exec(`
-    SELECT DISTINCT o.id, o.first_name, o.last_name, o.email,
+    SELECT DISTINCT o.id, o.first_name, o.last_name, o.email, o.mobile,
            o.pickup_date, o.notes, o.payment_id, o.amount_paid,
-           o.status, o.created_at, u.username
+           o.status, o.created_at, o.updated_at, u.username
     FROM orders o
     LEFT JOIN users u ON u.email = o.email
     ${where}
     ORDER BY o.created_at DESC`, params));
 
   // Attach line items
+  orders.forEach(o => {
+    o.items = rowsToObjects(db.exec(
+      `SELECT item_name AS name, price, quantity FROM order_items WHERE order_id=?`, [o.id]
+    ));
+  });
+  return orders;
+}
+
+export function getOrdersByEmail(email) {
+  const orders = rowsToObjects(db.exec(`
+    SELECT o.id, o.first_name, o.last_name, o.email, o.mobile,
+           o.pickup_date, o.notes, o.status, o.created_at, o.updated_at
+    FROM orders o
+    WHERE LOWER(o.email) = LOWER(?)
+    ORDER BY o.created_at DESC`, [email]));
   orders.forEach(o => {
     o.items = rowsToObjects(db.exec(
       `SELECT item_name AS name, price, quantity FROM order_items WHERE order_id=?`, [o.id]
@@ -493,4 +536,83 @@ export function getUserByUsername(username) {
     [username]
   ));
   return rows[0] || null;
+}
+
+// ── Campaigns ────────────────────────────────────────────────────────────────
+
+export function getCampaigns() {
+  return rowsToObjects(db.exec(
+    `SELECT id, title, subject, audience, status, recipient_count, sent_at, created_at
+     FROM campaigns ORDER BY created_at DESC`
+  ));
+}
+
+export function getCampaignById(id) {
+  const rows = rowsToObjects(db.exec(
+    `SELECT id, title, subject, body_html, audience, status, recipient_count, sent_at, created_at
+     FROM campaigns WHERE id=?`, [id]
+  ));
+  if (!rows.length) return null;
+  const c = rows[0];
+  c.recipients = rowsToObjects(db.exec(
+    `SELECT email, first_name, status, sent_at FROM campaign_recipients WHERE campaign_id=? ORDER BY sent_at`,
+    [id]
+  ));
+  return c;
+}
+
+export function createCampaign({ title, subject, body_html, audience }) {
+  db.run(
+    `INSERT INTO campaigns (title, subject, body_html, audience) VALUES (?,?,?,?)`,
+    [title, subject, body_html, audience]
+  );
+  const row = rowsToObjects(db.exec(`SELECT last_insert_rowid() AS id`))[0];
+  persist();
+  return row.id;
+}
+
+export function updateCampaign(id, { title, subject, body_html, audience }) {
+  db.run(
+    `UPDATE campaigns SET title=?, subject=?, body_html=?, audience=?, updated_at=datetime('now') WHERE id=? AND status='draft'`,
+    [title, subject, body_html, audience, id]
+  );
+  persist();
+}
+
+export function deleteCampaign(id) {
+  db.run(`DELETE FROM campaign_recipients WHERE campaign_id=?`, [id]);
+  db.run(`DELETE FROM campaigns WHERE id=?`, [id]);
+  persist();
+}
+
+export function markCampaignSent(id, recipients) {
+  for (const r of recipients) {
+    db.run(
+      `INSERT INTO campaign_recipients (campaign_id, email, first_name, status) VALUES (?,?,?,?)`,
+      [id, r.email, r.first_name, r.status]
+    );
+  }
+  const sent = recipients.filter(r => r.status === 'sent').length;
+  db.run(
+    `UPDATE campaigns SET status='sent', sent_at=datetime('now'), recipient_count=?, updated_at=datetime('now') WHERE id=?`,
+    [sent, id]
+  );
+  persist();
+}
+
+export function resolveCampaignAudience(audience) {
+  let sql;
+  if (audience === 'all') {
+    sql = `SELECT DISTINCT email, first_name FROM orders WHERE email != '' ORDER BY email`;
+  } else if (audience === 'repeat') {
+    sql = `SELECT email, first_name FROM orders WHERE email != ''
+           GROUP BY email HAVING COUNT(*) > 1 ORDER BY email`;
+  } else if (audience === 'completed') {
+    sql = `SELECT DISTINCT email, first_name FROM orders WHERE status='completed' AND email != '' ORDER BY email`;
+  } else if (audience === 'pending') {
+    sql = `SELECT DISTINCT email, first_name FROM orders WHERE status IN ('pending','confirmed','ready') AND email != '' ORDER BY email`;
+  } else {
+    return [];
+  }
+  return rowsToObjects(db.exec(sql));
 }

@@ -82,6 +82,9 @@ document.querySelector('#app').innerHTML = `
     <!-- Step 1: Proceed -->
     <div id="cart-proceed-wrap">
       <button class="btn-proceed-order" id="btn-proceed-order">Proceed to Order →</button>
+      <div id="my-orders-link-wrap" style="display:none;margin-top:12px;text-align:center;">
+        <button class="btn-text-link" id="btn-view-my-orders">View my previous orders</button>
+      </div>
     </div>
 
     <!-- Step 2: Auth choice -->
@@ -145,10 +148,20 @@ document.querySelector('#app').innerHTML = `
       <button class="btn-submit" id="btn-do-register">Create Account</button>
     </div>
 
+    <!-- Step: My Orders -->
+    <div id="cart-my-orders" class="cart-step" style="display:none;">
+      <button class="cart-back-btn" id="btn-back-from-my-orders">← Back</button>
+      <p class="cart-step-title">My Orders</p>
+      <div id="my-orders-list" class="my-orders-list"></div>
+    </div>
+
     <!-- Step 4: Order form -->
     <div id="cart-order-form" class="cart-step cart-order-form" style="display:none;">
       <button class="cart-back-btn" id="btn-back-from-order">← Back</button>
       <div id="cart-user-badge" class="cart-user-badge" style="display:none;"></div>
+      <div id="my-orders-link-form" style="display:none;margin-bottom:4px;">
+        <button class="btn-text-link" id="btn-view-my-orders-form">View my previous orders</button>
+      </div>
       <div class="cart-form-row">
         <div class="cart-form-group">
           <label class="form-label">First Name</label>
@@ -184,12 +197,94 @@ document.querySelector('#app').innerHTML = `
   </div>
 </div>
 
+<!-- LOGIN MODAL -->
+<div id="login-modal-overlay" class="login-modal-overlay">
+  <div class="login-modal">
+    <button class="login-modal-close" id="login-modal-close">×</button>
+
+    <!-- Tabs -->
+    <div class="login-modal-tabs">
+      <button class="login-modal-tab active" id="tab-signin">Sign In</button>
+      <button class="login-modal-tab" id="tab-register">Create Account</button>
+    </div>
+
+    <!-- Sign In panel -->
+    <div id="modal-panel-signin">
+      <div class="cart-form-group">
+        <label class="form-label">Username</label>
+        <input type="text" id="modal-login-username" class="form-input" placeholder="your_username">
+      </div>
+      <div class="cart-form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="modal-login-password" class="form-input" placeholder="••••••••">
+      </div>
+      <p id="modal-login-error" class="cart-form-error" style="display:none;"></p>
+      <button class="btn-submit" id="modal-login-btn">Sign In</button>
+    </div>
+
+    <!-- Create Account panel -->
+    <div id="modal-panel-register" style="display:none;">
+      <div class="cart-form-group">
+        <label class="form-label">Username</label>
+        <input type="text" id="modal-reg-username" class="form-input" placeholder="e.g. eleanor_m">
+      </div>
+      <div class="cart-form-row">
+        <div class="cart-form-group">
+          <label class="form-label">First Name</label>
+          <input type="text" id="modal-reg-firstname" class="form-input" placeholder="Eleanor">
+        </div>
+        <div class="cart-form-group">
+          <label class="form-label">Last Name</label>
+          <input type="text" id="modal-reg-lastname" class="form-input" placeholder="Marsh">
+        </div>
+      </div>
+      <div class="cart-form-group">
+        <label class="form-label">Email</label>
+        <input type="email" id="modal-reg-email" class="form-input" placeholder="you@example.com">
+      </div>
+      <div class="cart-form-group">
+        <label class="form-label">Mobile Number</label>
+        <input type="tel" id="modal-reg-mobile" class="form-input" placeholder="+91 98765 43210">
+      </div>
+      <div class="cart-form-group">
+        <label class="form-label">Password</label>
+        <input type="password" id="modal-reg-password" class="form-input" placeholder="Min 6 characters">
+      </div>
+      <p id="modal-reg-error" class="cart-form-error" style="display:none;"></p>
+      <button class="btn-submit" id="modal-reg-btn">Create Account</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MY ORDERS MODAL -->
+<div id="my-orders-modal-overlay" class="my-orders-modal-overlay">
+  <div class="my-orders-modal">
+    <div class="my-orders-modal-header">
+      <p class="my-orders-modal-title">My Orders</p>
+      <button class="my-orders-modal-close" id="my-orders-modal-close">×</button>
+    </div>
+    <div id="my-orders-modal-list" class="my-orders-modal-list"></div>
+  </div>
+</div>
+
 <!-- MOBILE NAV OVERLAY -->
 <div class="mobile-nav-overlay" id="mobile-nav-overlay">
+
+  <!-- User section: shown when logged in -->
+  <div id="mobile-user-section" class="mobile-user-section" style="display:none;">
+    <p class="mobile-nav-greeting">Hi, <span id="mobile-nav-user-name"></span></p>
+    <button class="mobile-nav-btn" id="mobile-my-orders-btn">View my past orders <span class="mobile-nav-arrow">→</span></button>
+    <button class="mobile-nav-btn mobile-signout-btn-item" id="mobile-signout-btn">Sign Out <span class="mobile-nav-arrow">→</span></button>
+  </div>
+
+  <!-- Sign In: shown when logged out -->
+  <button class="mobile-nav-btn mobile-signin-top" id="mobile-signin-btn" style="">Sign In <span class="mobile-nav-arrow">→</span></button>
+
   <nav class="mobile-nav-links">
     <a href="#" class="mobile-nav-btn" id="mobile-home-btn">Home <span class="mobile-nav-arrow">→</span></a>
     <button class="mobile-nav-btn" id="mobile-menu-btn">Products <span class="mobile-nav-arrow">→</span></button>
-    <a href="#process" class="mobile-nav-btn" id="mobile-craft-link">Our Craft <span class="mobile-nav-arrow">→</span></a>
+    <button class="mobile-nav-btn" id="mobile-craft-link">Our Craft <span class="mobile-nav-arrow">→</span></button>
     <button class="mobile-nav-btn mobile-nav-subbtn" id="mobile-founder-btn">Our Founder <span class="mobile-nav-arrow">→</span></button>
     <button class="mobile-nav-btn mobile-nav-subbtn" id="mobile-team-btn">Our Team <span class="mobile-nav-arrow">→</span></button>
   </nav>
@@ -206,10 +301,21 @@ document.querySelector('#app').innerHTML = `
   </div>
 </div>
 
+<!-- WELCOME BAR -->
+<div id="welcome-bar" class="welcome-bar" style="display:none;">
+  <div class="welcome-bar-user" id="welcome-bar-user">
+    <span class="welcome-bar-greeting">Hi, <span id="welcome-bar-name"></span> <span class="welcome-bar-caret">▾</span></span>
+    <div class="welcome-bar-dropdown" id="welcome-bar-dropdown">
+      <button class="welcome-bar-drop-btn" id="welcome-bar-orders-btn">My Orders</button>
+      <button class="welcome-bar-drop-btn" id="welcome-bar-signout-btn">Sign Out</button>
+    </div>
+  </div>
+</div>
+
 <!-- NAV -->
 <nav>
   <div class="nav-brand">
-    <div class="nav-logo">
+    <div class="nav-logo" id="nav-logo" style="cursor:pointer;">
       <img src="/logo.jpg" alt="Cassia" class="nav-logo-img">
       <span class="nav-logo-text">Cassia The Bake Studio</span>
     </div>
@@ -225,13 +331,16 @@ document.querySelector('#app').innerHTML = `
   <ul class="nav-links">
     <li><a href="#" id="home-nav-btn" class="menu-nav-trigger">Home</a></li>
     <li><button id="menu-nav-btn" class="menu-nav-trigger">Products</button></li>
-    <li><a href="#process">Our Craft</a></li>
+    <li><button id="craft-nav-btn" class="menu-nav-trigger">Our Craft</button></li>
     <li class="nav-team-item">
       <button id="team-nav-btn" class="menu-nav-trigger">Our Team</button>
       <div class="team-dropdown" id="team-dropdown">
         <button class="team-dropdown-item" id="founder-note-btn">Our Founder</button>
         <button class="team-dropdown-item" id="team-member-btn">Our Team</button>
       </div>
+    </li>
+    <li id="nav-user-li">
+      <button id="nav-signin-btn" class="menu-nav-trigger">Sign In</button>
     </li>
     <li><button id="cart-button" class="cart-nav-btn">Cart (<span id="cart-count">0</span>)</button></li>
   </ul>
@@ -244,6 +353,41 @@ document.querySelector('#app').innerHTML = `
   </div>
 </nav>
 
+<!-- LANDING PAGE -->
+<div id="landing-view" class="landing-view">
+
+  <section class="landing-section" style="padding-top:48px;">
+    <div class="landing-section-header">
+      <p class="landing-section-eyebrow">Crowd Favourites</p>
+      <h2 class="landing-section-title">Our Top Selling Products</h2>
+    </div>
+    <div id="landing-top-selling" class="landing-products-grid"></div>
+  </section>
+
+  <section class="landing-deal-section">
+    <div id="landing-deal-card" class="landing-deal-card"></div>
+  </section>
+
+  <section class="landing-section landing-section--alt">
+    <div class="landing-section-header">
+      <p class="landing-section-eyebrow">Chef Lekha's Pick</p>
+      <h2 class="landing-section-title">Chef's Recommendation</h2>
+    </div>
+    <div id="landing-chefs-card" class="landing-chefs-card"></div>
+  </section>
+
+  <section class="landing-cta-section">
+    <p class="landing-cta-eyebrow">And so much more</p>
+    <h2 class="landing-cta-title">Explore Everything We Bake</h2>
+    <p class="landing-cta-desc">Breads, tarts, celebration cakes, cookies — all made fresh to order.</p>
+    <button id="landing-shop-now" class="btn-primary">Browse All Products</button>
+  </section>
+
+</div>
+
+<!-- MAIN VIEW (Home) -->
+<div id="main-view" style="display:none;">
+
 <!-- HERO -->
 <section class="hero">
   <div class="hero-left">
@@ -252,6 +396,7 @@ document.querySelector('#app').innerHTML = `
     <p class="hero-subtitle">Where slow fermentation meets patient hands. Every loaf, tart, and pastry tells the story of its ingredients.</p>
     <div class="hero-cta">
       <a href="#menu" class="btn-primary">See our Products</a>
+      <button id="hero-deals-btn" class="btn-deals">Today's Deals <span class="btn-deals-tag">Sale</span></button>
     </div>
     <div class="hero-social">
       <a href="https://www.instagram.com/cassiathebakestudio/" target="_blank" rel="noopener noreferrer" class="social-link instagram">
@@ -433,6 +578,8 @@ document.querySelector('#app').innerHTML = `
     <span class="footer-copy">Handmade with patience.</span>
   </div>
 </footer>
+
+</div><!-- /#main-view -->
 `
 
 // Menu panel data
@@ -520,6 +667,13 @@ const menuData = {
   }
 };
 
+// ── View switching (landing ↔ main) ───────────────────────────────────────────
+function showView(view) {
+  document.getElementById('landing-view').style.display = view === 'landing' ? '' : 'none';
+  document.getElementById('main-view').style.display    = view === 'main'    ? '' : 'none';
+  window.scrollTo({ top: 0 });
+}
+
 // ── Home page showcase (display only, no cart) ────────────────────────────────
 const showcaseProducts = [
   { name: 'Breads',            desc: 'Slow-fermented sourdoughs, focaccias and artisan loaves baked fresh every morning.', price: 'From ₹749',   img: '/breads.jpeg',  cat: 'breads' },
@@ -541,6 +695,72 @@ document.getElementById('product-showcase').innerHTML = showcaseProducts.map((p,
     </div>
   </div>
 `).join('');
+
+// ── Landing page content ───────────────────────────────────────────────────────
+const topSelling = [
+  menuData.breads.products[0],       // Babka
+  menuData.tarts.products[0],        // Choco Chip Cookies
+  menuData.desserts.products[1],     // Brownie Fudge
+  menuData.standard.products[4],     // Pineapple Cake
+  menuData.desserts.products[2],     // Handpainted Macaroons
+  menuData.breads.products[5],       // Korean Buns
+];
+
+document.getElementById('landing-top-selling').innerHTML = topSelling.map(p => `
+  <div class="landing-product-card">
+    <div class="landing-product-img">${p.img ? `<img src="${p.img}" alt="${p.name}" loading="lazy">` : ''}</div>
+    <div class="landing-product-body">
+      <h3 class="landing-product-name">${p.name}</h3>
+      <p class="landing-product-desc">${p.desc}</p>
+      <div class="landing-product-footer">
+        <span class="landing-product-price">${p.price || ''}</span>
+        <button class="btn-add-cart landing-add-btn" data-name="${p.name}" data-price="${p.price || ''}">Add to Cart</button>
+      </div>
+    </div>
+  </div>
+`).join('');
+
+// Deal of the Day
+const dealProduct = menuData.breads.products[2]; // Nutella Pista Babka
+document.getElementById('landing-deal-card').innerHTML = `
+  <div class="landing-deal-img">${dealProduct.img ? `<img src="${dealProduct.img}" alt="${dealProduct.name}">` : ''}</div>
+  <div class="landing-deal-body">
+    <span class="landing-deal-badge">Deal of the Day</span>
+    <h2 class="landing-deal-name">${dealProduct.name}</h2>
+    <p class="landing-deal-desc">${dealProduct.desc}</p>
+    <div class="landing-deal-pricing">
+      <span class="landing-deal-original">${dealProduct.price}</span>
+      <span class="landing-deal-special">Today only — order before noon</span>
+    </div>
+    <button class="btn-primary landing-add-btn" data-name="${dealProduct.name}" data-price="${dealProduct.price || ''}">Add to Cart</button>
+  </div>
+`;
+
+// Chef's Recommendation
+const chefsProduct = menuData.desserts.products[4]; // Thandai Tres Leches
+document.getElementById('landing-chefs-card').innerHTML = `
+  <div class="landing-chefs-img">${chefsProduct.img ? `<img src="${chefsProduct.img}" alt="${chefsProduct.name}" loading="lazy">` : ''}</div>
+  <div class="landing-chefs-body">
+    <span class="landing-chefs-badge">Chef Lekha's Pick</span>
+    <h2 class="landing-chefs-name">${chefsProduct.name}</h2>
+    <p class="landing-chefs-desc">${chefsProduct.desc}</p>
+    <blockquote class="landing-chefs-quote">"A personal favourite — the thandai spices remind me of why I started baking in the first place."<cite>— Lekha</cite></blockquote>
+    <button class="btn-primary landing-add-btn" data-name="${chefsProduct.name}" data-price="${chefsProduct.price || ''}">Add to Cart</button>
+  </div>
+`;
+
+// Landing add-to-cart buttons
+document.getElementById('landing-view').addEventListener('click', e => {
+  const btn = e.target.closest('.landing-add-btn');
+  if (!btn) return;
+  const name = btn.dataset.name, price = btn.dataset.price;
+  const existing = cart.find(i => i.name === name);
+  if (existing) { existing.qty += 1; } else { cart.push({ name, price: price.replace(/^From\s+/, ''), qty: 1 }); }
+  updateCartCount(); renderCart(); openCartDrawer();
+});
+
+// Landing "Explore Products" → show main view
+document.getElementById('landing-shop-now').addEventListener('click', () => showView('main'));
 
 // showcase click handlers wired after openMenuPanel/showProductView are defined (see below)
 
@@ -671,7 +891,16 @@ function showProductDetail(product, index) {
 
     detailEl.style.display = 'grid';
     bodyEl.style.opacity = '1';
-    if (!alreadyVisible) detailEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (!alreadyVisible) {
+      requestAnimationFrame(() => {
+        const cs = getComputedStyle(document.documentElement);
+        const navH = parseFloat(cs.getPropertyValue('--nav-h')) || 60;
+        const welcomeH = document.body.classList.contains('user-logged-in')
+          ? parseFloat(cs.getPropertyValue('--welcome-bar-h')) || 0 : 0;
+        const top = window.scrollY + detailEl.getBoundingClientRect().top - navH - welcomeH - 16;
+        window.scrollTo({ top, behavior: 'smooth' });
+      });
+    }
   }
 
   if (alreadyVisible) {
@@ -715,7 +944,22 @@ hamburgerBtn.addEventListener('click', () => {
   mobileNavOverlay.classList.contains('open') ? closeMobileNav() : openMobileNav();
 });
 
-document.getElementById('mobile-home-btn').addEventListener('click', closeMobileNav);
+document.getElementById('mobile-home-btn').addEventListener('click', () => { closeMobileNav(); showView('main'); });
+document.getElementById('nav-logo').addEventListener('click', () => showView('landing'));
+document.getElementById('home-nav-btn').addEventListener('click', e => { e.preventDefault(); showView('main'); });
+document.getElementById('hero-deals-btn').addEventListener('click', () => showView('landing'));
+document.getElementById('craft-nav-btn').addEventListener('click', () => {
+  showView('main');
+  requestAnimationFrame(() => {
+    const el = document.getElementById('process');
+    if (el) {
+      const cs = getComputedStyle(document.documentElement);
+      const offset = parseFloat(cs.getPropertyValue('--nav-h')) + (document.body.classList.contains('user-logged-in') ? parseFloat(cs.getPropertyValue('--welcome-bar-h')) : 0) + 8;
+      window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - offset, behavior: 'smooth' });
+    }
+  });
+});
+document.getElementById('mobile-craft-link').addEventListener('click', () => { closeMobileNav(); showView('main'); });
 document.getElementById('mobile-menu-btn').addEventListener('click', () => {
   closeMobileNav(); openMenuPanel();
 });
@@ -922,7 +1166,7 @@ document.getElementById('cart-continue').addEventListener('click', closeCartDraw
 
 let currentUser = null; // { firstName, lastName, email, mobile } after login/register
 
-const CART_STEPS = ['cart-proceed-wrap', 'cart-auth-choice', 'cart-login-form', 'cart-register-form', 'cart-order-form'];
+const CART_STEPS = ['cart-proceed-wrap', 'cart-auth-choice', 'cart-login-form', 'cart-register-form', 'cart-order-form', 'cart-my-orders'];
 
 function showCartStep(stepId) {
   CART_STEPS.forEach(id => {
@@ -949,6 +1193,8 @@ function resetCartFlow() {
   });
   const badge = document.getElementById('cart-user-badge');
   if (badge) badge.style.display = 'none';
+  document.getElementById('my-orders-link-wrap').style.display = 'none';
+  document.getElementById('my-orders-link-form').style.display = 'none';
 }
 
 function prefillOrderForm(user) {
@@ -970,6 +1216,7 @@ function prefillOrderForm(user) {
 
 // Proceed →
 document.getElementById('btn-proceed-order').addEventListener('click', () => {
+  document.getElementById('my-orders-link-wrap').style.display = 'none';
   if (currentUser) {
     prefillOrderForm(currentUser);
     showCartStep('cart-order-form');
@@ -1019,6 +1266,57 @@ document.getElementById('btn-show-register2').addEventListener('click', () => {
 document.getElementById('btn-back-from-login').addEventListener('click', () => showCartStep('cart-auth-choice'));
 document.getElementById('btn-back-from-register').addEventListener('click', () => showCartStep('cart-auth-choice'));
 document.getElementById('btn-back-from-order').addEventListener('click', () => showCartStep('cart-auth-choice'));
+let myOrdersReturnStep = 'cart-proceed-wrap';
+
+document.getElementById('btn-back-from-my-orders').addEventListener('click', () => {
+  showCartStep(myOrdersReturnStep);
+});
+
+// My Orders (only shown when not logged in — clicking goes to login first)
+document.getElementById('btn-view-my-orders').addEventListener('click', () => {
+  myOrdersReturnStep = 'cart-proceed-wrap';
+  if (currentUser) { loadMyOrders(); } else { showCartStep('cart-auth-choice'); }
+});
+document.getElementById('btn-view-my-orders-form').addEventListener('click', () => {
+  myOrdersReturnStep = 'cart-order-form';
+  loadMyOrders();
+});
+
+async function loadMyOrders() {
+  showCartStep('cart-my-orders');
+  const listEl = document.getElementById('my-orders-list');
+  listEl.innerHTML = '<p class="my-orders-loading">Loading…</p>';
+  try {
+    const res = await fetch(`/api/orders/my?email=${encodeURIComponent(currentUser.email)}`);
+    const orders = await res.json();
+    if (!orders.length) {
+      listEl.innerHTML = '<p class="my-orders-empty">No orders found yet.</p>';
+      return;
+    }
+    const STATUS_LABELS = { pending:'Ordered', confirmed:'Ordered', ready:'Ordered', completed:'Delivered', cancelled:'Cancelled' };
+    listEl.innerHTML = orders.map(o => {
+      const items = (o.items||[]).map(i => `${i.name}${i.quantity > 1 ? ' ×'+i.quantity : ''}`).join(', ') || '—';
+      const pickup = o.pickup_date ? new Date(o.pickup_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      const placed = o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      const label  = STATUS_LABELS[o.status] || o.status;
+      return `<div class="my-order-card">
+        <div class="my-order-header">
+          <span class="my-order-id">${o.id}</span>
+          <span class="my-order-status my-order-status--${o.status}">${label}</span>
+        </div>
+        <p class="my-order-items">${items}</p>
+        <div class="my-order-meta">
+          <span>Pickup: ${pickup}</span>
+          <span>Placed: ${placed}</span>
+        </div>
+        ${o.notes ? `<p class="my-order-notes">${o.notes}</p>` : ''}
+      </div>`;
+    }).join('');
+  } catch (err) {
+    console.error('loadMyOrders error:', err);
+    listEl.innerHTML = '<p class="my-orders-empty">Could not load orders. Please try again.</p>';
+  }
+}
 
 // Login
 document.getElementById('btn-do-login').addEventListener('click', async () => {
@@ -1037,6 +1335,7 @@ document.getElementById('btn-do-login').addEventListener('click', async () => {
     const data = await res.json();
     if (data.success) {
       currentUser = data.user;
+      updateNavUser();
       prefillOrderForm(data.user);
       showCartStep('cart-order-form');
     } else {
@@ -1061,7 +1360,7 @@ document.getElementById('btn-do-register').addEventListener('click', async () =>
   const password  = document.getElementById('reg-password').value;
   const errEl     = document.getElementById('register-error');
   errEl.style.display = 'none';
-  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const emailRe = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
   const missing = [];
   if (!username)   missing.push('Username');
   if (!firstName)  missing.push('First Name');
@@ -1115,7 +1414,7 @@ document.getElementById('btn-order-submit').addEventListener('click', async () =
 
   const orderErrEl = document.getElementById('order-form-error');
   orderErrEl.style.display = 'none';
-  const _emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const _emailRe = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
   if (!firstName || !lastName || !email || !pickupDate) {
     orderErrEl.textContent = 'Please fill in all required fields (First Name, Last Name, Email, Pickup Date).';
     orderErrEl.style.display = 'block';
@@ -1167,7 +1466,7 @@ document.getElementById('btn-order-submit').addEventListener('click', async () =
 updateCartCount();
 
 // ── Email validation (inline, on blur) ────────────────────────────────────────
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/;
 
 function attachEmailValidation(inputId, errorId) {
   const input = document.getElementById(inputId);
@@ -1219,5 +1518,258 @@ attachEmailValidation('reg-email',  'reg-email-error');
 
   timer = setInterval(next, 5000);
 })();
+
+// ── Nav user state ─────────────────────────────────────────────────────────────
+function updateNavUser() {
+  if (currentUser) {
+    // Welcome bar (above nav on all screen sizes)
+    document.getElementById('welcome-bar').style.display = '';
+    document.getElementById('welcome-bar-name').textContent = currentUser.firstName;
+    document.body.classList.add('user-logged-in');
+    // Desktop nav: hide Sign In
+    document.getElementById('nav-signin-btn').style.display = 'none';
+    // Mobile nav overlay: show user section, hide sign-in button
+    document.getElementById('mobile-user-section').style.display = 'block';
+    document.getElementById('mobile-nav-user-name').textContent = currentUser.firstName;
+    document.getElementById('mobile-signin-btn').style.display = 'none';
+  } else {
+    // Welcome bar hidden
+    document.getElementById('welcome-bar').style.display = 'none';
+    document.body.classList.remove('user-logged-in');
+    // Desktop nav: show Sign In
+    document.getElementById('nav-signin-btn').style.display = '';
+    // Mobile nav overlay: hide user section, show sign-in button
+    document.getElementById('mobile-user-section').style.display = 'none';
+    document.getElementById('mobile-signin-btn').style.display = '';
+  }
+}
+
+updateNavUser();
+
+// Nav Sign In
+let loginFromMobileNav = false;
+document.getElementById('nav-signin-btn').addEventListener('click', openLoginModal);
+document.getElementById('mobile-signin-btn').addEventListener('click', () => {
+  loginFromMobileNav = true;
+  closeMobileNav();
+  openLoginModal();
+});
+
+// Welcome bar dropdown toggle
+document.getElementById('welcome-bar-user').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('welcome-bar-user').classList.toggle('open');
+});
+document.addEventListener('click', () => {
+  document.getElementById('welcome-bar-user').classList.remove('open');
+});
+
+// Sign Out
+document.getElementById('welcome-bar-signout-btn').addEventListener('click', signOut);
+document.getElementById('mobile-signout-btn').addEventListener('click', signOut);
+
+function signOut() {
+  currentUser = null;
+  updateNavUser();
+  closeMobileNav();
+}
+
+// My Orders
+document.getElementById('welcome-bar-orders-btn').addEventListener('click', openMyOrdersModal);
+document.getElementById('mobile-my-orders-btn').addEventListener('click', openMyOrdersModal);
+
+// Login modal — tab switching
+document.getElementById('tab-signin').addEventListener('click', () => switchModalTab('signin'));
+document.getElementById('tab-register').addEventListener('click', () => switchModalTab('register'));
+
+function switchModalTab(tab) {
+  const isSignin = tab === 'signin';
+  document.getElementById('tab-signin').classList.toggle('active', isSignin);
+  document.getElementById('tab-register').classList.toggle('active', !isSignin);
+  document.getElementById('modal-panel-signin').style.display   = isSignin ? '' : 'none';
+  document.getElementById('modal-panel-register').style.display = isSignin ? 'none' : '';
+}
+
+function openLoginModal() {
+  document.getElementById('modal-login-username').value = '';
+  document.getElementById('modal-login-password').value = '';
+  document.getElementById('modal-login-error').style.display = 'none';
+  ['modal-reg-username','modal-reg-firstname','modal-reg-lastname','modal-reg-email','modal-reg-mobile','modal-reg-password'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('modal-reg-error').style.display = 'none';
+  switchModalTab('signin');
+  document.getElementById('login-modal-overlay').classList.add('open');
+}
+
+document.getElementById('login-modal-close').addEventListener('click', () => {
+  document.getElementById('login-modal-overlay').classList.remove('open');
+});
+document.getElementById('login-modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) document.getElementById('login-modal-overlay').classList.remove('open');
+});
+
+// Sign In submit
+document.getElementById('modal-login-btn').addEventListener('click', async () => {
+  const username = document.getElementById('modal-login-username').value.trim();
+  const password = document.getElementById('modal-login-password').value;
+  const errEl = document.getElementById('modal-login-error');
+  errEl.style.display = 'none';
+  if (!username || !password) {
+    errEl.textContent = 'Please enter your username and password.';
+    errEl.style.display = 'block'; return;
+  }
+  const btn = document.getElementById('modal-login-btn');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  try {
+    const res = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+    const data = await res.json();
+    if (data.success) {
+      currentUser = data.user;
+      updateNavUser();
+      document.getElementById('login-modal-overlay').classList.remove('open');
+      if (loginFromMobileNav) { loginFromMobileNav = false; openMobileNav(); }
+    } else {
+      errEl.textContent = data.error || 'Invalid username or password.';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = 'Could not reach server. Please try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+});
+
+// Create Account submit
+document.getElementById('modal-reg-btn').addEventListener('click', async () => {
+  const username  = document.getElementById('modal-reg-username').value.trim();
+  const firstName = document.getElementById('modal-reg-firstname').value.trim();
+  const lastName  = document.getElementById('modal-reg-lastname').value.trim();
+  const email     = document.getElementById('modal-reg-email').value.trim();
+  const mobile    = document.getElementById('modal-reg-mobile').value.trim();
+  const password  = document.getElementById('modal-reg-password').value;
+  const errEl     = document.getElementById('modal-reg-error');
+  errEl.style.display = 'none';
+
+  // Validation
+  const missing = [];
+  if (!username)   missing.push('Username');
+  if (!firstName)  missing.push('First Name');
+  if (!lastName)   missing.push('Last Name');
+  if (!email)      missing.push('Email');
+  if (!password)   missing.push('Password');
+  if (missing.length) {
+    errEl.textContent = 'Please fill in: ' + missing.join(', ');
+    errEl.style.display = 'block'; return;
+  }
+  if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
+    errEl.textContent = 'Username must be 3–30 characters: letters, numbers or underscores only.';
+    errEl.style.display = 'block'; return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email)) {
+    errEl.textContent = 'Please enter a valid email address (e.g. you@example.com).';
+    errEl.style.display = 'block'; return;
+  }
+  if (password.length < 6) {
+    errEl.textContent = 'Password must be at least 6 characters.';
+    errEl.style.display = 'block'; return;
+  }
+
+  const btn = document.getElementById('modal-reg-btn');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+  try {
+    const res  = await fetch('/api/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, firstName, lastName, email, mobile, password }) });
+    const data = await res.json();
+    if (data.success) {
+      // Auto-login after registration
+      const loginRes  = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, password }) });
+      const loginData = await loginRes.json();
+      if (loginData.success) {
+        currentUser = loginData.user;
+        updateNavUser();
+        document.getElementById('login-modal-overlay').classList.remove('open');
+        if (loginFromMobileNav) { loginFromMobileNav = false; openMobileNav(); }
+      } else {
+        // Account created, switch to sign-in
+        switchModalTab('signin');
+        document.getElementById('modal-login-username').value = username;
+        const siErr = document.getElementById('modal-login-error');
+        siErr.style.cssText = 'display:block;background:#f0f7f0;border-color:#b2d8b2;color:#2e7d32;';
+        siErr.textContent = 'Account created! Please sign in.';
+      }
+    } else {
+      errEl.textContent = data.error || 'Registration failed. Please try again.';
+      errEl.style.display = 'block';
+    }
+  } catch {
+    errEl.textContent = 'Could not reach server. Please try again.';
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+});
+
+// My Orders Modal
+async function openMyOrdersModal() {
+  document.getElementById('my-orders-modal-overlay').classList.add('open');
+  const listEl = document.getElementById('my-orders-modal-list');
+  listEl.innerHTML = '<p class="my-orders-loading">Loading…</p>';
+  try {
+    const res = await fetch(`/api/orders/my?email=${encodeURIComponent(currentUser.email)}`);
+    const orders = await res.json();
+    if (!orders.length) {
+      listEl.innerHTML = '<p class="my-orders-empty">No orders yet.</p>';
+      return;
+    }
+    const LABELS = { pending:'Ordered', confirmed:'Ordered', ready:'Ordered', completed:'Delivered', cancelled:'Cancelled' };
+    listEl.innerHTML = orders.map(o => {
+      const items = (o.items||[]).map(i => `${i.name}${i.quantity > 1 ? ' ×'+i.quantity : ''}`).join(', ') || '—';
+      const pickup = o.pickup_date ? new Date(o.pickup_date + 'T00:00:00').toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      const placed = o.created_at ? new Date(o.created_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      const label = LABELS[o.status] || o.status;
+      const itemsJson = encodeURIComponent(JSON.stringify(o.items||[]));
+      return `<div class="my-order-card">
+        <div class="my-order-header">
+          <span class="my-order-id">${o.id}</span>
+          <span class="my-order-status my-order-status--${o.status}">${label}</span>
+        </div>
+        <p class="my-order-items">${items}</p>
+        <div class="my-order-meta">
+          <span>Pickup: ${pickup}</span>
+          <span>Placed: ${placed}</span>
+        </div>
+        ${o.notes ? `<p class="my-order-notes">${o.notes}</p>` : ''}
+        <button class="repeat-order-btn" onclick="repeatOrder('${itemsJson}')">Repeat Order</button>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    console.error('openMyOrdersModal error:', err);
+    listEl.innerHTML = '<p class="my-orders-empty">Could not load orders. Please try again.</p>';
+  }
+}
+
+document.getElementById('my-orders-modal-close').addEventListener('click', () => {
+  document.getElementById('my-orders-modal-overlay').classList.remove('open');
+});
+document.getElementById('my-orders-modal-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) document.getElementById('my-orders-modal-overlay').classList.remove('open');
+});
+
+function repeatOrder(itemsJson) {
+  const items = JSON.parse(decodeURIComponent(itemsJson));
+  items.forEach(item => {
+    const existing = cart.find(c => c.name === item.name);
+    if (existing) {
+      existing.qty += item.quantity || 1;
+    } else {
+      cart.push({ name: item.name, price: item.price || '', qty: item.quantity || 1 });
+    }
+  });
+  updateCartCount();
+  document.getElementById('my-orders-modal-overlay').classList.remove('open');
+  renderCart();
+  openCartDrawer();
+}
 
 

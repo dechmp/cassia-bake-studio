@@ -13,8 +13,10 @@ import { promisify } from 'util';
 import {
   initDB, getInventory, addInventoryItem,
   updateInventoryItem, deleteInventoryItem,
-  saveOrder, getOrders, getOrderById, deleteOrder, updateOrderStatus, getOrderStatusLog,
-  createUser, getUserByEmail, getUserByUsername
+  saveOrder, getOrders, getOrdersByEmail, getOrderById, deleteOrder, updateOrderStatus, getOrderStatusLog,
+  createUser, getUserByEmail, getUserByUsername,
+  getCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
+  markCampaignSent, resolveCampaignAudience
 } from './src/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -106,7 +108,7 @@ app.post('/api/auth/register', authLimiter, async (req, res) => {
     if (!/^[a-zA-Z0-9_]{3,30}$/.test(username)) {
       return res.status(400).json({ error: 'Username must be 3–30 characters and contain only letters, numbers or underscores' });
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email)) {
       return res.status(400).json({ error: 'Invalid email address' });
     }
     if (password.length < 6) {
@@ -196,7 +198,7 @@ app.post('/api/send-order', async (req, res) => {
     }
 
     // Basic email format check
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (!/^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(email)) {
       return res.status(400).json({ error: 'Invalid email address' });
     }
 
@@ -399,6 +401,19 @@ app.delete('/api/inventory/:type/:id', (req, res) => {
 
 // ── Orders endpoints ────────────────────────────────────────────────────────
 
+// User — fetch their own orders by email
+app.get('/api/orders/my', (req, res) => {
+  try {
+    const email = (req.query.email || '').trim();
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    const orders = getOrdersByEmail(email);
+    res.json(orders);
+  } catch (err) {
+    console.error('/api/orders/my error:', err);
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
 app.get('/api/orders', (req, res) => {
   try {
     const { status, email, from, to } = req.query;
@@ -506,6 +521,109 @@ app.get('/api/admin/inventory', requireAdmin, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch inventory' });
   }
+});
+
+// ── Campaigns ───────────────────────────────────────────────────────────────
+
+const VALID_AUDIENCES = ['all', 'repeat', 'completed', 'pending'];
+
+app.get('/api/admin/campaigns', requireAdmin, (req, res) => {
+  try { res.json(getCampaigns()); }
+  catch (err) { res.status(500).json({ error: 'Failed to fetch campaigns' }); }
+});
+
+app.get('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
+  try {
+    const c = getCampaignById(Number(req.params.id));
+    if (!c) return res.status(404).json({ error: 'Campaign not found' });
+    res.json(c);
+  } catch (err) { res.status(500).json({ error: 'Failed to fetch campaign' }); }
+});
+
+app.post('/api/admin/campaigns', requireAdmin, (req, res) => {
+  try {
+    const { title, subject, body_html, audience } = req.body;
+    if (!title || !subject || !body_html || !audience)
+      return res.status(400).json({ error: 'All fields are required' });
+    if (!VALID_AUDIENCES.includes(audience))
+      return res.status(400).json({ error: 'Invalid audience' });
+    const id = createCampaign({ title: sanitize(title), subject: sanitize(subject), body_html, audience });
+    res.json({ success: true, id });
+  } catch (err) { res.status(500).json({ error: 'Failed to create campaign' }); }
+});
+
+app.put('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
+  try {
+    const { title, subject, body_html, audience } = req.body;
+    if (!title || !subject || !body_html || !audience)
+      return res.status(400).json({ error: 'All fields are required' });
+    if (!VALID_AUDIENCES.includes(audience))
+      return res.status(400).json({ error: 'Invalid audience' });
+    const c = getCampaignById(Number(req.params.id));
+    if (!c) return res.status(404).json({ error: 'Campaign not found' });
+    if (c.status === 'sent') return res.status(400).json({ error: 'Cannot edit a sent campaign' });
+    updateCampaign(Number(req.params.id), { title: sanitize(title), subject: sanitize(subject), body_html, audience });
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Failed to update campaign' }); }
+});
+
+app.delete('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
+  try {
+    deleteCampaign(Number(req.params.id));
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: 'Failed to delete campaign' }); }
+});
+
+app.get('/api/admin/campaigns/:id/preview', requireAdmin, (req, res) => {
+  try {
+    const c = getCampaignById(Number(req.params.id));
+    if (!c) return res.status(404).json({ error: 'Campaign not found' });
+    const recipients = resolveCampaignAudience(c.audience);
+    res.json({ count: recipients.length, recipients });
+  } catch (err) { res.status(500).json({ error: 'Failed to preview campaign' }); }
+});
+
+app.post('/api/admin/campaigns/:id/send', requireAdmin, async (req, res) => {
+  try {
+    const c = getCampaignById(Number(req.params.id));
+    if (!c) return res.status(404).json({ error: 'Campaign not found' });
+    if (c.status === 'sent') return res.status(400).json({ error: 'Campaign already sent' });
+
+    const recipients = resolveCampaignAudience(c.audience);
+    if (!recipients.length) return res.status(400).json({ error: 'No recipients for this audience' });
+
+    const results = [];
+    for (const r of recipients) {
+      const html = c.body_html.replace(/\{\{first_name\}\}/g, r.first_name || 'Valued Customer');
+      try {
+        await transporter.sendMail({
+          from: `"Cassia Bake Studio" <${process.env.EMAIL_USER}>`,
+          to: r.email,
+          subject: c.subject,
+          html: `
+            <div style="font-family:'Georgia',serif;max-width:600px;margin:0 auto;color:#1C1208">
+              <div style="background:#5C3D1E;padding:24px 32px;text-align:center">
+                <h1 style="color:#F7F0E6;font-weight:300;letter-spacing:0.15em;margin:0;font-size:1.6rem">Cassia Bake Studio</h1>
+              </div>
+              <div style="padding:32px;background:#FDF8F2;border:1px solid #D4C4B0;border-top:none">
+                ${html}
+              </div>
+              <div style="padding:16px 32px;text-align:center;font-size:0.75rem;color:#8C7B6B">
+                Cassia Bake Studio &nbsp;·&nbsp; To unsubscribe, reply with "unsubscribe"
+              </div>
+            </div>`
+        });
+        results.push({ email: r.email, first_name: r.first_name, status: 'sent' });
+      } catch (_) {
+        results.push({ email: r.email, first_name: r.first_name, status: 'failed' });
+      }
+    }
+
+    markCampaignSent(Number(req.params.id), results);
+    const sent   = results.filter(r => r.status === 'sent').length;
+    const failed = results.filter(r => r.status === 'failed').length;
+    res.json({ success: true, sent, failed });
+  } catch (err) { res.status(500).json({ error: 'Failed to send campaign' }); }
 });
 
 // ── Start server after DB is ready ─────────────────────────────────────────
