@@ -35,6 +35,11 @@ document.querySelector('#app').innerHTML = `
         <span class="menu-detail-price" id="menu-detail-price"></span>
         <button class="btn-add-cart menu-detail-add-btn" id="menu-detail-add">Add to Cart</button>
       </div>
+      <div class="home-product-nav" style="margin-top:16px;">
+        <button class="home-product-arrow home-product-arrow--prev" id="menu-detail-prev" aria-label="Previous">&#8249;</button>
+        <span class="home-product-counter" id="menu-detail-counter"></span>
+        <button class="home-product-arrow home-product-arrow--next" id="menu-detail-next" aria-label="Next">&#8250;</button>
+      </div>
     </div>
   </div>
 </div>
@@ -49,7 +54,7 @@ document.querySelector('#app').innerHTML = `
       <p class="founder-modal-label">Our Founder</p>
       <h2 class="founder-modal-name">Lekha</h2>
       <p class="founder-modal-quote">"Every loaf begins with intention. We bake not to fill shelves, but to feed the people we love."</p>
-      <blockquote class="founder-fun-quote"><p>"I spent years managing frozen assets, but now I'm just trying to keep my butter from melting! I told my boss I was leaving to finally make some serious dough, then swapped my spreadsheets for flour sifters. Turns out, a perfect rise is way more rewarding than a fluctuating interest rate!"</p><cite>— Lekha</cite></blockquote>    </div>
+      <blockquote class="founder-fun-quote"><p>"I spent years managing frozen assets, but now I'm just trying to keep my butter from melting! I told my boss I was leaving to finally make some serious dough, then swapped my spreadsheets for flour sifters. Turns out, a perfect rise is way more rewarding than a fluctuating interest rate!"</p></blockquote>    </div>
   </div>
 </div>
 
@@ -317,7 +322,6 @@ document.querySelector('#app').innerHTML = `
   <div class="nav-brand">
     <div class="nav-logo" id="nav-logo" style="cursor:pointer;">
       <img src="/logo.jpg" alt="Cassia" class="nav-logo-img">
-      <span class="nav-logo-text">Cassia The Bake Studio</span>
     </div>
     <div class="nav-social">
       <a href="https://www.instagram.com/cassiathebakestudio/" target="_blank" rel="noopener noreferrer" class="social-link instagram">
@@ -339,6 +343,7 @@ document.querySelector('#app').innerHTML = `
         <button class="team-dropdown-item" id="team-member-btn">Our Team</button>
       </div>
     </li>
+    <li><button id="contact-nav-btn" class="menu-nav-trigger">Contact Us</button></li>
     <li id="nav-user-li">
       <button id="nav-signin-btn" class="menu-nav-trigger">Sign In</button>
     </li>
@@ -355,6 +360,9 @@ document.querySelector('#app').innerHTML = `
 
 <!-- LANDING PAGE -->
 <div id="landing-view" class="landing-view">
+
+  <!-- Active promo banner (injected by JS) -->
+  <div id="landing-promo-banner" style="display:none;"></div>
 
   <section class="landing-section" style="padding-top:48px;">
     <div class="landing-section-header">
@@ -382,6 +390,15 @@ document.querySelector('#app').innerHTML = `
     <p class="landing-cta-desc">Breads, tarts, celebration cakes, cookies — all made fresh to order.</p>
     <button id="landing-shop-now" class="btn-primary">Browse All Products</button>
   </section>
+
+  <!-- Image lightbox overlay -->
+  <div id="landing-lightbox" class="landing-lightbox" style="display:none;" role="dialog" aria-modal="true">
+    <button class="landing-lightbox-close" aria-label="Close">&times;</button>
+    <div class="landing-lightbox-content">
+      <img id="landing-lightbox-img" src="" alt="" class="landing-lightbox-img">
+      <p id="landing-lightbox-name" class="landing-lightbox-name"></p>
+    </div>
+  </div>
 
 </div>
 
@@ -545,22 +562,13 @@ document.querySelector('#app').innerHTML = `
       <p>Artisan baking on Millbrook Lane since 2009. Everything made by hand, from ingredients you can trace.</p>
     </div>
     <div>
-      <p class="footer-col-title">Products</p>
-      <ul class="footer-links">
-        <li><a href="#menu">Breads</a></li>
-        <li><a href="#menu">Pastries</a></li>
-        <li><a href="#menu">Cakes</a></li>
-        <li><a href="#menu">Seasonal</a></li>
-      </ul>
-    </div>
-    <div>
       <p class="footer-col-title">Visit</p>
       <ul class="footer-links">
-        <li><a href="#">Indiranagar</a></li>
-        <li><a href="#">Bangalore, Karnataka</a></li>
-        <li><a href="#">India</a></li>
-        <li><a href="#">Tue–Sun 7am–3pm</a></li>
-        <li><a href="#">(212) 555-BAKE</a></li>
+        <li><a>Indiranagar</a></li>
+        <li><a>Bangalore, Karnataka</a></li>
+        <li><a>India</a></li>
+        <li><a>Tue–Sun 7am–3pm</a></li>
+        <li><a>(212) 555-BAKE</a></li>
       </ul>
     </div>
     <div>
@@ -568,8 +576,8 @@ document.querySelector('#app').innerHTML = `
       <ul class="footer-links">
         <li><a href="https://www.instagram.com/cassiathebakestudio/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
         <li><a href="https://wa.me/919945602982" target="_blank" rel="noopener noreferrer">WhatsApp</a></li>
-        <li><a href="#">Newsletter</a></li>
-        <li><a href="#">Wholesale</a></li>
+        <li><a>Newsletter</a></li>
+        <li><a>Wholesale</a></li>
       </ul>
     </div>
   </div>
@@ -580,6 +588,78 @@ document.querySelector('#app').innerHTML = `
 </footer>
 
 </div><!-- /#main-view -->
+
+<!-- CONTACT VIEW -->
+<div id="contact-view" style="display:none;">
+  <section class="contact-hero">
+    <p class="contact-hero-eyebrow">We'd love to hear from you</p>
+    <h1 class="contact-hero-title">Contact Us</h1>
+  </section>
+
+  <section class="contact-content">
+    <!-- Form -->
+    <div class="contact-form-wrap">
+      <h2 class="contact-section-title">Send a Message</h2>
+      <form id="contact-form" novalidate>
+        <div class="contact-field">
+          <label for="contact-name">Full Name</label>
+          <input type="text" id="contact-name" name="name" required placeholder="Your full name">
+        </div>
+        <div class="contact-field">
+          <label for="contact-email">Email Address</label>
+          <input type="email" id="contact-email" name="email" required placeholder="your@email.com">
+        </div>
+        <div class="contact-field">
+          <label for="contact-phone">Phone Number</label>
+          <input type="tel" id="contact-phone" name="phone" required placeholder="+91 98765 43210">
+        </div>
+        <div class="contact-field">
+          <label for="contact-message">Message <span class="contact-optional">(optional)</span></label>
+          <textarea id="contact-message" name="message" rows="4" placeholder="How can we help you?"></textarea>
+        </div>
+        <div class="contact-field">
+          <label for="contact-image">Attach an Image <span class="contact-optional">(optional)</span></label>
+          <input type="file" id="contact-image" name="image" accept="image/*" class="contact-file-input">
+          <span class="contact-file-hint">JPG, PNG or WEBP · max 5 MB</span>
+        </div>
+        <button type="submit" class="btn-primary contact-submit-btn">Send Message</button>
+        <p id="contact-status" class="contact-status"></p>
+      </form>
+    </div>
+
+    <!-- Info + Map -->
+    <div class="contact-info-wrap">
+      <div class="contact-info-block">
+        <h2 class="contact-section-title">Get in Touch</h2>
+        <div class="contact-detail-list">
+          <div class="contact-detail">
+            <span class="contact-detail-label">Phone</span>
+            <a href="tel:+919845377075" class="contact-detail-value">+91 98453 77075</a>
+          </div>
+          <div class="contact-detail">
+            <span class="contact-detail-label">Email</span>
+            <a href="mailto:support@cassia.in" class="contact-detail-value">support@cassia.in</a>
+          </div>
+          <div class="contact-detail">
+            <span class="contact-detail-label">Hours</span>
+            <span class="contact-detail-value">Mon–Sat, 9 am – 5 pm</span>
+          </div>
+          <div class="contact-detail">
+            <span class="contact-detail-label">Location</span>
+            <span class="contact-detail-value">Indiranagar, Bangalore</span>
+          </div>
+        </div>
+      </div>
+      <div class="contact-map">
+        <iframe
+          src="https://maps.google.com/maps?q=Cassia+The+Bake+Studio+Indiranagar+Bangalore&output=embed&z=15"
+          title="Cassia The Bake Studio location"
+          allowfullscreen loading="lazy">
+        </iframe>
+      </div>
+    </div>
+  </section>
+</div>
 `
 
 // Menu panel data
@@ -667,10 +747,50 @@ const menuData = {
   }
 };
 
+// ── Active promo banner ───────────────────────────────────────────────────────
+(async () => {
+  try {
+    const res = await fetch('http://localhost:3001/api/promo/active');
+    if (!res.ok) return;
+    const p = await res.json();
+    if (!p) return;
+
+    const dismissed = sessionStorage.getItem(`promo-dismissed-${p.id}`);
+    if (dismissed) return;
+
+    const bgClass = `landing-promo-bg-${['brown','caramel','dark','blush'].includes(p.bg) ? p.bg : 'brown'}`;
+    const banner = document.getElementById('landing-promo-banner');
+    banner.innerHTML = `
+      <div class="landing-promo ${bgClass}">
+        <div class="landing-promo-inner">
+          <div class="landing-promo-left">
+            ${p.badge ? `<span class="landing-promo-badge">${p.badge}</span>` : ''}
+            <h2 class="landing-promo-title">${p.title}</h2>
+            ${p.subtitle ? `<p class="landing-promo-subtitle">${p.subtitle}</p>` : ''}
+          </div>
+          <div class="landing-promo-right">
+            <button class="landing-promo-cta">${p.cta_label || 'Shop Now'}</button>
+            <button class="landing-promo-dismiss" aria-label="Dismiss">✕</button>
+          </div>
+        </div>
+      </div>`;
+    banner.style.display = '';
+
+    banner.querySelector('.landing-promo-cta').addEventListener('click', () => {
+      document.getElementById('menu-nav-btn')?.click();
+    });
+    banner.querySelector('.landing-promo-dismiss').addEventListener('click', () => {
+      sessionStorage.setItem(`promo-dismissed-${p.id}`, '1');
+      banner.style.display = 'none';
+    });
+  } catch { /* server offline — fail silently */ }
+})();
+
 // ── View switching (landing ↔ main) ───────────────────────────────────────────
 function showView(view) {
-  document.getElementById('landing-view').style.display = view === 'landing' ? '' : 'none';
-  document.getElementById('main-view').style.display    = view === 'main'    ? '' : 'none';
+  document.getElementById('landing-view').style.display  = view === 'landing'  ? '' : 'none';
+  document.getElementById('main-view').style.display     = view === 'main'     ? '' : 'none';
+  document.getElementById('contact-view').style.display  = view === 'contact'  ? '' : 'none';
   window.scrollTo({ top: 0 });
 }
 
@@ -698,7 +818,6 @@ document.getElementById('product-showcase').innerHTML = showcaseProducts.map((p,
 
 // ── Landing page content ───────────────────────────────────────────────────────
 const topSelling = [
-  menuData.breads.products[0],       // Babka
   menuData.tarts.products[0],        // Choco Chip Cookies
   menuData.desserts.products[1],     // Brownie Fudge
   menuData.standard.products[4],     // Pineapple Cake
@@ -759,8 +878,39 @@ document.getElementById('landing-view').addEventListener('click', e => {
   updateCartCount(); renderCart(); openCartDrawer();
 });
 
+// Landing product image lightbox
+(function () {
+  const lightbox = document.getElementById('landing-lightbox');
+  const lbImg    = document.getElementById('landing-lightbox-img');
+  const lbName   = document.getElementById('landing-lightbox-name');
+
+  document.getElementById('landing-view').addEventListener('click', e => {
+    const imgWrap = e.target.closest('.landing-product-img');
+    if (!imgWrap) return;
+    const img = imgWrap.querySelector('img');
+    if (!img) return;
+    lbImg.src = img.src;
+    lbImg.alt = img.alt;
+    lbName.textContent = imgWrap.closest('.landing-product-card')?.querySelector('.landing-product-name')?.textContent || '';
+    lightbox.style.display = '';
+    document.body.style.overflow = 'hidden';
+  });
+
+  function closeLightbox() {
+    lightbox.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  lightbox.querySelector('.landing-lightbox-close').addEventListener('click', closeLightbox);
+  lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && lightbox.style.display !== 'none') closeLightbox(); });
+})();
+
 // Landing "Explore Products" → show main view
-document.getElementById('landing-shop-now').addEventListener('click', () => showView('main'));
+document.getElementById('landing-shop-now').addEventListener('click', () => {
+  showView('main');
+  document.getElementById('menu').scrollIntoView({ behavior: 'smooth' });
+});
 
 // showcase click handlers wired after openMenuPanel/showProductView are defined (see below)
 
@@ -791,6 +941,62 @@ function showCategoryView() {
 }
 
 let currentCatKey = null;
+
+let menuDetailIndex = 0;
+
+function showMenuDetail(product, index) {
+  const products = menuData[currentCatKey]?.products || [];
+  menuDetailIndex = index !== undefined ? index : products.findIndex(p => p.id === product.id);
+  if (menuDetailIndex < 0) menuDetailIndex = 0;
+
+  const imgEl     = document.getElementById('menu-detail-img');
+  const tagEl     = document.getElementById('menu-detail-tag');
+  const nameEl    = document.getElementById('menu-detail-name');
+  const descEl    = document.getElementById('menu-detail-desc');
+  const priceEl   = document.getElementById('menu-detail-price');
+  const addBtn    = document.getElementById('menu-detail-add');
+  const prevBtn   = document.getElementById('menu-detail-prev');
+  const nextBtn   = document.getElementById('menu-detail-next');
+  const counterEl = document.getElementById('menu-detail-counter');
+
+  // Image
+  if (product.img) {
+    imgEl.innerHTML = `<img src="${product.img}" alt="${product.name}">`;
+  } else if (product.svg) {
+    imgEl.innerHTML = product.svg;
+  } else {
+    imgEl.innerHTML = '';
+  }
+
+  tagEl.textContent   = product.tag || '';
+  tagEl.style.display = product.tag ? 'inline-block' : 'none';
+  nameEl.textContent  = product.name;
+  descEl.textContent  = product.desc;
+  priceEl.textContent = product.price || '';
+
+  // Prev / Next
+  prevBtn.disabled = menuDetailIndex === 0;
+  nextBtn.disabled = menuDetailIndex === products.length - 1;
+  counterEl.textContent = products.length > 1 ? `${menuDetailIndex + 1} / ${products.length}` : '';
+  prevBtn.onclick = () => { if (menuDetailIndex > 0) showMenuDetail(products[menuDetailIndex - 1], menuDetailIndex - 1); };
+  nextBtn.onclick = () => { if (menuDetailIndex < products.length - 1) showMenuDetail(products[menuDetailIndex + 1], menuDetailIndex + 1); };
+
+  if (product.whatsapp) {
+    addBtn.textContent = 'Get in touch with us';
+    addBtn.onclick = () => showView('contact');
+  } else {
+    addBtn.textContent = 'Add to Cart';
+    addBtn.onclick = () => {
+      const existing = cart.find(i => i.name === product.name);
+      if (existing) { existing.qty += 1; } else { cart.push({ name: product.name, price: (product.price || '').replace(/^From\s+/, ''), qty: 1 }); }
+      updateCartCount(); renderCart(); openCartDrawer();
+    };
+  }
+
+  menuViewCats.style.display  = 'none';
+  menuViewProds.style.display = 'none';
+  document.getElementById('menu-view-detail').style.display = 'block';
+}
 
 function showProductView(catKey) {
   currentCatKey = catKey;
@@ -825,6 +1031,10 @@ let currentProductIndex = 0;
 
 function showProductDetail(product, index) {
   closeMenuPanel();
+  // Only switch views if coming from the landing page (avoids unwanted scroll-to-top)
+  if (document.getElementById('landing-view').style.display !== 'none') {
+    showView('main');
+  }
 
   const products = menuData[currentCatKey]?.products || [];
   currentProductIndex = index !== undefined ? index : products.findIndex(p => p.id === product.id);
@@ -879,7 +1089,7 @@ function showProductDetail(product, index) {
     const addBtn = document.getElementById('home-product-add');
     if (product.whatsapp) {
       addBtn.textContent = 'Get in touch with us';
-      addBtn.onclick = () => window.open('https://wa.me/919945602982', 'cassia_whatsapp');
+      addBtn.onclick = () => showView('contact');
     } else {
       addBtn.textContent = 'Add to Cart';
       addBtn.onclick = () => {
@@ -891,16 +1101,14 @@ function showProductDetail(product, index) {
 
     detailEl.style.display = 'grid';
     bodyEl.style.opacity = '1';
-    if (!alreadyVisible) {
-      requestAnimationFrame(() => {
-        const cs = getComputedStyle(document.documentElement);
-        const navH = parseFloat(cs.getPropertyValue('--nav-h')) || 60;
-        const welcomeH = document.body.classList.contains('user-logged-in')
-          ? parseFloat(cs.getPropertyValue('--welcome-bar-h')) || 0 : 0;
-        const top = window.scrollY + detailEl.getBoundingClientRect().top - navH - welcomeH - 16;
-        window.scrollTo({ top, behavior: 'smooth' });
-      });
-    }
+    requestAnimationFrame(() => {
+      const cs = getComputedStyle(document.documentElement);
+      const navH = parseFloat(cs.getPropertyValue('--nav-h')) || 60;
+      const welcomeH = document.body.classList.contains('user-logged-in')
+        ? parseFloat(cs.getPropertyValue('--welcome-bar-h')) || 0 : 0;
+      const top = window.scrollY + detailEl.getBoundingClientRect().top - navH - welcomeH - 16;
+      window.scrollTo({ top, behavior: 'smooth' });
+    });
   }
 
   if (alreadyVisible) {
@@ -947,6 +1155,47 @@ hamburgerBtn.addEventListener('click', () => {
 document.getElementById('mobile-home-btn').addEventListener('click', () => { closeMobileNav(); showView('main'); });
 document.getElementById('nav-logo').addEventListener('click', () => showView('landing'));
 document.getElementById('home-nav-btn').addEventListener('click', e => { e.preventDefault(); showView('main'); });
+document.getElementById('contact-nav-btn').addEventListener('click', () => showView('contact'));
+
+// Contact form submit
+document.getElementById('contact-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn    = e.target.querySelector('.contact-submit-btn');
+  const status = document.getElementById('contact-status');
+  const imageFile = document.getElementById('contact-image').files[0];
+
+  if (imageFile && imageFile.size > 5 * 1024 * 1024) {
+    status.textContent = 'Image must be under 5 MB.';
+    status.className = 'contact-status contact-status--err';
+    return;
+  }
+
+  const fd = new FormData();
+  fd.append('name',    document.getElementById('contact-name').value.trim());
+  fd.append('email',   document.getElementById('contact-email').value.trim());
+  fd.append('phone',   document.getElementById('contact-phone').value.trim());
+  fd.append('message', document.getElementById('contact-message').value.trim());
+  if (imageFile) fd.append('image', imageFile);
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  status.textContent = '';
+  status.className = 'contact-status';
+  try {
+    const res = await fetch('/api/contact', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to send.');
+    status.textContent = 'Message sent! We\'ll get back to you soon.';
+    status.classList.add('contact-status--ok');
+    e.target.reset();
+  } catch (err) {
+    status.textContent = err.message || 'Something went wrong. Please try again.';
+    status.classList.add('contact-status--err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  }
+});
 document.getElementById('hero-deals-btn').addEventListener('click', () => showView('landing'));
 document.getElementById('craft-nav-btn').addEventListener('click', () => {
   showView('main');
