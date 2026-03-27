@@ -16,8 +16,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH   = path.join(__dirname, '..', 'data', 'cassia.db');
-const DATA_DIR  = path.join(__dirname, '..', 'data');
+const DB_PATH   = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'cassia.db');
+const DATA_DIR  = path.dirname(DB_PATH);
 
 let db;
 
@@ -198,6 +198,10 @@ function createSchema() {
   // Add username to users if upgrading from older schema
   try { db.run(`ALTER TABLE users ADD COLUMN username TEXT NOT NULL DEFAULT ''`); } catch (_) {}
   try { db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username != ''`); } catch (_) {}
+  // Add extra_emails to campaigns if upgrading from older schema
+  try { db.run(`ALTER TABLE campaigns ADD COLUMN extra_emails TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
+  // Add excluded_emails to campaigns if upgrading from older schema
+  try { db.run(`ALTER TABLE campaigns ADD COLUMN excluded_emails TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
 
   // ── Order status audit log ────────────────────────────────────────────────
   db.run(`
@@ -211,6 +215,23 @@ function createSchema() {
     );
   `);
   db.run(`CREATE INDEX IF NOT EXISTS idx_status_log_order ON order_status_log(order_id);`);
+
+  // ── Campaigns ─────────────────────────────────────────────────────────────
+  // ── Site Promos ───────────────────────────────────────────────────────────
+  db.run(`
+    CREATE TABLE IF NOT EXISTS site_promos (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      title      TEXT    NOT NULL,
+      subtitle   TEXT    NOT NULL DEFAULT '',
+      badge      TEXT    NOT NULL DEFAULT '',
+      cta_label  TEXT    NOT NULL DEFAULT 'Shop Now',
+      bg         TEXT    NOT NULL DEFAULT 'brown',
+      starts_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+      days       INTEGER NOT NULL DEFAULT 7,
+      active     INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
+    );
+  `);
 
   // ── Campaigns ─────────────────────────────────────────────────────────────
   db.run(`
@@ -542,18 +563,27 @@ export function getUserByUsername(username) {
 
 export function getCampaigns() {
   return rowsToObjects(db.exec(
-    `SELECT id, title, subject, audience, status, recipient_count, sent_at, created_at
+    `SELECT id, title, subject, audience, extra_emails, status, recipient_count, sent_at, created_at
      FROM campaigns ORDER BY created_at DESC`
-  ));
+  )).map(c => {
+    try {
+      const arr = JSON.parse(c.extra_emails || '[]');
+      c.extra_email_count = Array.isArray(arr) ? arr.length : 0;
+    } catch { c.extra_email_count = 0; }
+    delete c.extra_emails;
+    return c;
+  });
 }
 
 export function getCampaignById(id) {
   const rows = rowsToObjects(db.exec(
-    `SELECT id, title, subject, body_html, audience, status, recipient_count, sent_at, created_at
+    `SELECT id, title, subject, body_html, audience, extra_emails, excluded_emails, status, recipient_count, sent_at, created_at
      FROM campaigns WHERE id=?`, [id]
   ));
   if (!rows.length) return null;
   const c = rows[0];
+  try { c.extra_emails    = JSON.parse(c.extra_emails    || '[]'); } catch { c.extra_emails    = []; }
+  try { c.excluded_emails = JSON.parse(c.excluded_emails || '[]'); } catch { c.excluded_emails = []; }
   c.recipients = rowsToObjects(db.exec(
     `SELECT email, first_name, status, sent_at FROM campaign_recipients WHERE campaign_id=? ORDER BY sent_at`,
     [id]
@@ -561,20 +591,20 @@ export function getCampaignById(id) {
   return c;
 }
 
-export function createCampaign({ title, subject, body_html, audience }) {
+export function createCampaign({ title, subject, body_html, audience, extra_emails = [], excluded_emails = [] }) {
   db.run(
-    `INSERT INTO campaigns (title, subject, body_html, audience) VALUES (?,?,?,?)`,
-    [title, subject, body_html, audience]
+    `INSERT INTO campaigns (title, subject, body_html, audience, extra_emails, excluded_emails) VALUES (?,?,?,?,?,?)`,
+    [title, subject, body_html, audience, JSON.stringify(extra_emails), JSON.stringify(excluded_emails)]
   );
   const row = rowsToObjects(db.exec(`SELECT last_insert_rowid() AS id`))[0];
   persist();
   return row.id;
 }
 
-export function updateCampaign(id, { title, subject, body_html, audience }) {
+export function updateCampaign(id, { title, subject, body_html, audience, extra_emails = [], excluded_emails = [] }) {
   db.run(
-    `UPDATE campaigns SET title=?, subject=?, body_html=?, audience=?, updated_at=datetime('now') WHERE id=? AND status='draft'`,
-    [title, subject, body_html, audience, id]
+    `UPDATE campaigns SET title=?, subject=?, body_html=?, audience=?, extra_emails=?, excluded_emails=?, updated_at=datetime('now') WHERE id=? AND status='draft'`,
+    [title, subject, body_html, audience, JSON.stringify(extra_emails), JSON.stringify(excluded_emails), id]
   );
   persist();
 }
@@ -597,6 +627,64 @@ export function markCampaignSent(id, recipients) {
     `UPDATE campaigns SET status='sent', sent_at=datetime('now'), recipient_count=?, updated_at=datetime('now') WHERE id=?`,
     [sent, id]
   );
+  persist();
+}
+
+// ── Site Promos ──────────────────────────────────────────────────────────────
+
+export function getPromos() {
+  return rowsToObjects(db.exec(
+    `SELECT id, title, subtitle, badge, cta_label, bg, starts_at, days, active, created_at
+     FROM site_promos ORDER BY created_at DESC`
+  ));
+}
+
+export function getActivePromo() {
+  // Returns the one active promo that is within its visibility window
+  const rows = rowsToObjects(db.exec(
+    `SELECT id, title, subtitle, badge, cta_label, bg, starts_at, days, active
+     FROM site_promos
+     WHERE active = 1
+       AND datetime('now') >= datetime(starts_at)
+       AND datetime('now') <= datetime(starts_at, '+' || days || ' days')
+     LIMIT 1`
+  ));
+  return rows[0] || null;
+}
+
+export function createPromo({ title, subtitle, badge, cta_label, bg, starts_at, days }) {
+  db.run(
+    `INSERT INTO site_promos (title, subtitle, badge, cta_label, bg, starts_at, days)
+     VALUES (?,?,?,?,?,?,?)`,
+    [title, subtitle, badge, cta_label, bg, starts_at, days]
+  );
+  const row = rowsToObjects(db.exec(`SELECT last_insert_rowid() AS id`))[0];
+  persist();
+  return row.id;
+}
+
+export function updatePromo(id, { title, subtitle, badge, cta_label, bg, starts_at, days }) {
+  db.run(
+    `UPDATE site_promos SET title=?, subtitle=?, badge=?, cta_label=?, bg=?, starts_at=?, days=?
+     WHERE id=?`,
+    [title, subtitle, badge, cta_label, bg, starts_at, days, id]
+  );
+  persist();
+}
+
+export function activatePromo(id) {
+  db.run(`UPDATE site_promos SET active = 0`);           // deactivate all
+  db.run(`UPDATE site_promos SET active = 1 WHERE id=?`, [id]);
+  persist();
+}
+
+export function deactivatePromo(id) {
+  db.run(`UPDATE site_promos SET active = 0 WHERE id=?`, [id]);
+  persist();
+}
+
+export function deletePromo(id) {
+  db.run(`DELETE FROM site_promos WHERE id=?`, [id]);
   persist();
 }
 
