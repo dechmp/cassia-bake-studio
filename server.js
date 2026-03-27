@@ -10,13 +10,15 @@ import crypto from 'crypto';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { promisify } from 'util';
+import multer from 'multer';
 import {
   initDB, getInventory, addInventoryItem,
   updateInventoryItem, deleteInventoryItem,
   saveOrder, getOrders, getOrdersByEmail, getOrderById, deleteOrder, updateOrderStatus, getOrderStatusLog,
   createUser, getUserByEmail, getUserByUsername,
   getCampaigns, getCampaignById, createCampaign, updateCampaign, deleteCampaign,
-  markCampaignSent, resolveCampaignAudience
+  markCampaignSent, resolveCampaignAudience,
+  getPromos, getActivePromo, createPromo, updatePromo, activatePromo, deactivatePromo, deletePromo
 } from './src/db.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -38,7 +40,8 @@ const allowedOrigins = [
   'http://localhost:4173',
   'http://localhost:3001',
   'https://many-hylozoistic-benevolently.ngrok-free.dev',
-  'https://many-hylozoistic-benevolently.ngrok-free.app'
+  'https://many-hylozoistic-benevolently.ngrok-free.app',
+  ...(process.env.PRODUCTION_URL ? [process.env.PRODUCTION_URL] : [])
 ];
 app.use(cors({
   origin: (origin, cb) => {
@@ -173,6 +176,65 @@ transporter.verify((err) => {
 });
 
 
+
+// Contact form endpoint
+const contactUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) cb(null, true);
+    else cb(new Error('Only image files are allowed.'));
+  }
+}).single('image');
+
+app.post('/api/contact', (req, res) => {
+  contactUpload(req, res, async (uploadErr) => {
+    if (uploadErr) {
+      return res.status(400).json({ error: uploadErr.message || 'File upload failed.' });
+    }
+    try {
+      const name    = (req.body.name    || '').toString().trim().slice(0, 200);
+      const email   = (req.body.email   || '').toString().trim().slice(0, 200);
+      const phone   = (req.body.phone   || '').toString().trim().slice(0, 50);
+      const message = (req.body.message || '').toString().trim().slice(0, 2000);
+
+      if (!name || !email || !phone) {
+        return res.status(400).json({ error: 'Name, email and phone are required.' });
+      }
+
+      const mailOpts = {
+        from: `"Cassia Contact Form" <${process.env.EMAIL_USER}>`,
+        to: 'dechmp@zohomail.in',
+        replyTo: email,
+        subject: `Contact Form: ${name}`,
+        html: `
+          <h2 style="font-family:serif;color:#5C3D1E;">New Contact Message</h2>
+          <table style="font-family:sans-serif;font-size:14px;border-collapse:collapse;width:100%;max-width:520px;">
+            <tr><td style="padding:8px 0;color:#888;width:120px;">Name</td><td style="padding:8px 0;font-weight:600;">${name}</td></tr>
+            <tr><td style="padding:8px 0;color:#888;">Email</td><td style="padding:8px 0;">${email}</td></tr>
+            <tr><td style="padding:8px 0;color:#888;">Phone</td><td style="padding:8px 0;">${phone}</td></tr>
+            ${message ? `<tr><td style="padding:8px 0;color:#888;vertical-align:top;">Message</td><td style="padding:8px 0;">${message.replace(/\n/g,'<br>')}</td></tr>` : ''}
+          </table>
+          ${req.file ? '<p style="font-family:sans-serif;font-size:13px;color:#888;margin-top:16px;">Image attached.</p>' : ''}
+        `
+      };
+
+      if (req.file) {
+        mailOpts.attachments = [{
+          filename: req.file.originalname || 'image',
+          content:  req.file.buffer,
+          contentType: req.file.mimetype
+        }];
+      }
+
+      await transporter.sendMail(mailOpts);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('Contact email error:', err);
+      res.status(500).json({ error: 'Failed to send message. Please try again.' });
+    }
+  });
+});
 
 // Email endpoint
 app.post('/api/send-order', async (req, res) => {
@@ -363,7 +425,7 @@ app.get('/api/inventory', (req, res) => {
   }
 });
 
-app.post('/api/inventory/:type', (req, res) => {
+app.post('/api/inventory/:type', requireAdmin, (req, res) => {
   try {
     const { type } = req.params;
     if (!['ingredients', 'products'].includes(type)) return res.status(400).json({ error: 'Invalid type' });
@@ -376,7 +438,7 @@ app.post('/api/inventory/:type', (req, res) => {
   }
 });
 
-app.put('/api/inventory/:type/:id', (req, res) => {
+app.put('/api/inventory/:type/:id', requireAdmin, (req, res) => {
   try {
     const { type, id } = req.params;
     if (!['ingredients', 'products'].includes(type)) return res.status(400).json({ error: 'Invalid type' });
@@ -388,7 +450,7 @@ app.put('/api/inventory/:type/:id', (req, res) => {
   }
 });
 
-app.delete('/api/inventory/:type/:id', (req, res) => {
+app.delete('/api/inventory/:type/:id', requireAdmin, (req, res) => {
   try {
     const { type, id } = req.params;
     if (!['ingredients', 'products'].includes(type)) return res.status(400).json({ error: 'Invalid type' });
@@ -523,9 +585,82 @@ app.get('/api/admin/inventory', requireAdmin, (req, res) => {
   }
 });
 
+// ── Site Promos ─────────────────────────────────────────────────────────────
+
+// Public — used by the landing page
+app.get('/api/promo/active', (req, res) => {
+  try { res.json(getActivePromo() || null); }
+  catch { res.status(500).json({ error: 'Failed to fetch promo' }); }
+});
+
+// Admin CRUD
+app.get('/api/admin/promos', requireAdmin, (req, res) => {
+  try { res.json(getPromos()); }
+  catch { res.status(500).json({ error: 'Failed to fetch promos' }); }
+});
+
+app.post('/api/admin/promos', requireAdmin, (req, res) => {
+  try {
+    const { title, subtitle, badge, cta_label, bg, starts_at, days } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+    const d = Math.max(1, Math.min(365, parseInt(days) || 7));
+    const id = createPromo({
+      title: sanitize(title), subtitle: sanitize(subtitle || ''),
+      badge: sanitize(badge || ''), cta_label: sanitize(cta_label || 'Shop Now'),
+      bg: sanitize(bg || 'brown'), starts_at: starts_at || new Date().toISOString(), days: d
+    });
+    res.json({ success: true, id });
+  } catch { res.status(500).json({ error: 'Failed to create promo' }); }
+});
+
+app.put('/api/admin/promos/:id', requireAdmin, (req, res) => {
+  try {
+    const { title, subtitle, badge, cta_label, bg, starts_at, days } = req.body;
+    if (!title) return res.status(400).json({ error: 'Title is required' });
+    const d = Math.max(1, Math.min(365, parseInt(days) || 7));
+    updatePromo(Number(req.params.id), {
+      title: sanitize(title), subtitle: sanitize(subtitle || ''),
+      badge: sanitize(badge || ''), cta_label: sanitize(cta_label || 'Shop Now'),
+      bg: sanitize(bg || 'brown'), starts_at: starts_at || new Date().toISOString(), days: d
+    });
+    res.json({ success: true });
+  } catch { res.status(500).json({ error: 'Failed to update promo' }); }
+});
+
+app.post('/api/admin/promos/:id/activate', requireAdmin, (req, res) => {
+  try { activatePromo(Number(req.params.id)); res.json({ success: true }); }
+  catch { res.status(500).json({ error: 'Failed to activate promo' }); }
+});
+
+app.post('/api/admin/promos/:id/deactivate', requireAdmin, (req, res) => {
+  try { deactivatePromo(Number(req.params.id)); res.json({ success: true }); }
+  catch { res.status(500).json({ error: 'Failed to deactivate promo' }); }
+});
+
+app.delete('/api/admin/promos/:id', requireAdmin, (req, res) => {
+  try { deletePromo(Number(req.params.id)); res.json({ success: true }); }
+  catch { res.status(500).json({ error: 'Failed to delete promo' }); }
+});
+
 // ── Campaigns ───────────────────────────────────────────────────────────────
 
 const VALID_AUDIENCES = ['all', 'repeat', 'completed', 'pending'];
+
+// Merge audience + extra emails, then remove excluded (all deduplicated by lowercase email)
+function mergeRecipients(audienceList, extraEmails, excludedEmails = []) {
+  const excluded = new Set((excludedEmails || []).map(e => e.toLowerCase()));
+  const seen = new Set();
+  const result = [];
+  for (const r of audienceList) {
+    const key = r.email.toLowerCase();
+    if (!excluded.has(key) && !seen.has(key)) { seen.add(key); result.push(r); }
+  }
+  for (const e of (extraEmails || [])) {
+    const key = e.toLowerCase();
+    if (!excluded.has(key) && !seen.has(key)) { seen.add(key); result.push({ email: e, first_name: '' }); }
+  }
+  return result;
+}
 
 app.get('/api/admin/campaigns', requireAdmin, (req, res) => {
   try { res.json(getCampaigns()); }
@@ -542,19 +677,21 @@ app.get('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
 
 app.post('/api/admin/campaigns', requireAdmin, (req, res) => {
   try {
-    const { title, subject, body_html, audience } = req.body;
+    const { title, subject, body_html, audience, extra_emails } = req.body;
     if (!title || !subject || !body_html || !audience)
       return res.status(400).json({ error: 'All fields are required' });
     if (!VALID_AUDIENCES.includes(audience))
       return res.status(400).json({ error: 'Invalid audience' });
-    const id = createCampaign({ title: sanitize(title), subject: sanitize(subject), body_html, audience });
+    const emails    = Array.isArray(extra_emails)    ? extra_emails.filter(e    => typeof e === 'string' && e.includes('@')) : [];
+    const excluded  = Array.isArray(req.body.excluded_emails) ? req.body.excluded_emails.filter(e => typeof e === 'string' && e.includes('@')) : [];
+    const id = createCampaign({ title: sanitize(title), subject: sanitize(subject), body_html, audience, extra_emails: emails, excluded_emails: excluded });
     res.json({ success: true, id });
   } catch (err) { res.status(500).json({ error: 'Failed to create campaign' }); }
 });
 
 app.put('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
   try {
-    const { title, subject, body_html, audience } = req.body;
+    const { title, subject, body_html, audience, extra_emails } = req.body;
     if (!title || !subject || !body_html || !audience)
       return res.status(400).json({ error: 'All fields are required' });
     if (!VALID_AUDIENCES.includes(audience))
@@ -562,7 +699,9 @@ app.put('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
     const c = getCampaignById(Number(req.params.id));
     if (!c) return res.status(404).json({ error: 'Campaign not found' });
     if (c.status === 'sent') return res.status(400).json({ error: 'Cannot edit a sent campaign' });
-    updateCampaign(Number(req.params.id), { title: sanitize(title), subject: sanitize(subject), body_html, audience });
+    const emails   = Array.isArray(extra_emails)    ? extra_emails.filter(e    => typeof e === 'string' && e.includes('@')) : [];
+    const excluded = Array.isArray(req.body.excluded_emails) ? req.body.excluded_emails.filter(e => typeof e === 'string' && e.includes('@')) : [];
+    updateCampaign(Number(req.params.id), { title: sanitize(title), subject: sanitize(subject), body_html, audience, extra_emails: emails, excluded_emails: excluded });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Failed to update campaign' }); }
 });
@@ -578,7 +717,7 @@ app.get('/api/admin/campaigns/:id/preview', requireAdmin, (req, res) => {
   try {
     const c = getCampaignById(Number(req.params.id));
     if (!c) return res.status(404).json({ error: 'Campaign not found' });
-    const recipients = resolveCampaignAudience(c.audience);
+    const recipients = mergeRecipients(resolveCampaignAudience(c.audience), c.extra_emails || [], c.excluded_emails || []);
     res.json({ count: recipients.length, recipients });
   } catch (err) { res.status(500).json({ error: 'Failed to preview campaign' }); }
 });
@@ -589,7 +728,7 @@ app.post('/api/admin/campaigns/:id/send', requireAdmin, async (req, res) => {
     if (!c) return res.status(404).json({ error: 'Campaign not found' });
     if (c.status === 'sent') return res.status(400).json({ error: 'Campaign already sent' });
 
-    const recipients = resolveCampaignAudience(c.audience);
+    const recipients = mergeRecipients(resolveCampaignAudience(c.audience), c.extra_emails || [], c.excluded_emails || []);
     if (!recipients.length) return res.status(400).json({ error: 'No recipients for this audience' });
 
     const results = [];
@@ -625,6 +764,14 @@ app.post('/api/admin/campaigns/:id/send', requireAdmin, async (req, res) => {
     res.json({ success: true, sent, failed });
   } catch (err) { res.status(500).json({ error: 'Failed to send campaign' }); }
 });
+
+// ── Serve Vite frontend in production ───────────────────────────────────────
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+}
 
 // ── Start server after DB is ready ─────────────────────────────────────────
 initDB().then(() => {
