@@ -1,5 +1,6 @@
 import express from 'express';
 import nodemailer from 'nodemailer';
+import twilio from 'twilio';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import fs from 'fs';
@@ -25,6 +26,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config();
+
+const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -646,18 +651,21 @@ app.delete('/api/admin/promos/:id', requireAdmin, (req, res) => {
 
 const VALID_AUDIENCES = ['all', 'repeat', 'completed', 'pending'];
 
-// Merge audience + extra emails, then remove excluded (all deduplicated by lowercase email)
-function mergeRecipients(audienceList, extraEmails, excludedEmails = []) {
-  const excluded = new Set((excludedEmails || []).map(e => e.toLowerCase()));
+// Merge audience + extra mobiles, then remove excluded (deduplicated by normalised mobile)
+function normMobile(m) { return (m || '').replace(/[\s\-]/g, ''); }
+
+function mergeRecipients(audienceList, extraMobiles, excludedMobiles = []) {
+  const excluded = new Set((excludedMobiles || []).map(normMobile));
   const seen = new Set();
   const result = [];
   for (const r of audienceList) {
-    const key = r.email.toLowerCase();
+    const key = normMobile(r.mobile);
+    if (!key) continue;
     if (!excluded.has(key) && !seen.has(key)) { seen.add(key); result.push(r); }
   }
-  for (const e of (extraEmails || [])) {
-    const key = e.toLowerCase();
-    if (!excluded.has(key) && !seen.has(key)) { seen.add(key); result.push({ email: e, first_name: '' }); }
+  for (const m of (extraMobiles || [])) {
+    const key = normMobile(m);
+    if (!excluded.has(key) && !seen.has(key)) { seen.add(key); result.push({ mobile: m, first_name: '' }); }
   }
   return result;
 }
@@ -677,31 +685,31 @@ app.get('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
 
 app.post('/api/admin/campaigns', requireAdmin, (req, res) => {
   try {
-    const { title, subject, body_html, audience, extra_emails } = req.body;
-    if (!title || !subject || !body_html || !audience)
+    const { title, body_html, audience, extra_mobiles, excluded_mobiles } = req.body;
+    if (!title || !body_html || !audience)
       return res.status(400).json({ error: 'All fields are required' });
     if (!VALID_AUDIENCES.includes(audience))
       return res.status(400).json({ error: 'Invalid audience' });
-    const emails    = Array.isArray(extra_emails)    ? extra_emails.filter(e    => typeof e === 'string' && e.includes('@')) : [];
-    const excluded  = Array.isArray(req.body.excluded_emails) ? req.body.excluded_emails.filter(e => typeof e === 'string' && e.includes('@')) : [];
-    const id = createCampaign({ title: sanitize(title), subject: sanitize(subject), body_html, audience, extra_emails: emails, excluded_emails: excluded });
+    const mobiles  = Array.isArray(extra_mobiles)    ? extra_mobiles.filter(m    => typeof m === 'string' && m.trim().length >= 7) : [];
+    const excluded = Array.isArray(excluded_mobiles) ? excluded_mobiles.filter(m => typeof m === 'string' && m.trim().length >= 7) : [];
+    const id = createCampaign({ title: sanitize(title), subject: sanitize(title), body_html, audience, extra_mobiles: mobiles, excluded_mobiles: excluded });
     res.json({ success: true, id });
   } catch (err) { res.status(500).json({ error: 'Failed to create campaign' }); }
 });
 
 app.put('/api/admin/campaigns/:id', requireAdmin, (req, res) => {
   try {
-    const { title, subject, body_html, audience, extra_emails } = req.body;
-    if (!title || !subject || !body_html || !audience)
+    const { title, body_html, audience, extra_mobiles, excluded_mobiles } = req.body;
+    if (!title || !body_html || !audience)
       return res.status(400).json({ error: 'All fields are required' });
     if (!VALID_AUDIENCES.includes(audience))
       return res.status(400).json({ error: 'Invalid audience' });
     const c = getCampaignById(Number(req.params.id));
     if (!c) return res.status(404).json({ error: 'Campaign not found' });
     if (c.status === 'sent') return res.status(400).json({ error: 'Cannot edit a sent campaign' });
-    const emails   = Array.isArray(extra_emails)    ? extra_emails.filter(e    => typeof e === 'string' && e.includes('@')) : [];
-    const excluded = Array.isArray(req.body.excluded_emails) ? req.body.excluded_emails.filter(e => typeof e === 'string' && e.includes('@')) : [];
-    updateCampaign(Number(req.params.id), { title: sanitize(title), subject: sanitize(subject), body_html, audience, extra_emails: emails, excluded_emails: excluded });
+    const mobiles  = Array.isArray(extra_mobiles)    ? extra_mobiles.filter(m    => typeof m === 'string' && m.trim().length >= 7) : [];
+    const excluded = Array.isArray(excluded_mobiles) ? excluded_mobiles.filter(m => typeof m === 'string' && m.trim().length >= 7) : [];
+    updateCampaign(Number(req.params.id), { title: sanitize(title), subject: sanitize(title), body_html, audience, extra_mobiles: mobiles, excluded_mobiles: excluded });
     res.json({ success: true });
   } catch (err) { res.status(500).json({ error: 'Failed to update campaign' }); }
 });
@@ -717,44 +725,34 @@ app.get('/api/admin/campaigns/:id/preview', requireAdmin, (req, res) => {
   try {
     const c = getCampaignById(Number(req.params.id));
     if (!c) return res.status(404).json({ error: 'Campaign not found' });
-    const recipients = mergeRecipients(resolveCampaignAudience(c.audience), c.extra_emails || [], c.excluded_emails || []);
+    const recipients = mergeRecipients(resolveCampaignAudience(c.audience), c.extra_mobiles || [], c.excluded_mobiles || []);
     res.json({ count: recipients.length, recipients });
   } catch (err) { res.status(500).json({ error: 'Failed to preview campaign' }); }
 });
 
 app.post('/api/admin/campaigns/:id/send', requireAdmin, async (req, res) => {
   try {
+    if (!twilioClient) return res.status(503).json({ error: 'SMS not configured — set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM_NUMBER in .env' });
+
     const c = getCampaignById(Number(req.params.id));
     if (!c) return res.status(404).json({ error: 'Campaign not found' });
     if (c.status === 'sent') return res.status(400).json({ error: 'Campaign already sent' });
 
-    const recipients = mergeRecipients(resolveCampaignAudience(c.audience), c.extra_emails || [], c.excluded_emails || []);
-    if (!recipients.length) return res.status(400).json({ error: 'No recipients for this audience' });
+    const recipients = mergeRecipients(resolveCampaignAudience(c.audience), c.extra_mobiles || [], c.excluded_mobiles || []);
+    if (!recipients.length) return res.status(400).json({ error: 'No recipients with mobile numbers for this audience' });
 
     const results = [];
     for (const r of recipients) {
-      const html = c.body_html.replace(/\{\{first_name\}\}/g, r.first_name || 'Valued Customer');
+      const body = c.body_html.replace(/\{\{first_name\}\}/g, r.first_name || 'Valued Customer');
       try {
-        await transporter.sendMail({
-          from: `"Cassia Bake Studio" <${process.env.EMAIL_USER}>`,
-          to: r.email,
-          subject: c.subject,
-          html: `
-            <div style="font-family:'Georgia',serif;max-width:600px;margin:0 auto;color:#1C1208">
-              <div style="background:#5C3D1E;padding:24px 32px;text-align:center">
-                <h1 style="color:#F7F0E6;font-weight:300;letter-spacing:0.15em;margin:0;font-size:1.6rem">Cassia Bake Studio</h1>
-              </div>
-              <div style="padding:32px;background:#FDF8F2;border:1px solid #D4C4B0;border-top:none">
-                ${html}
-              </div>
-              <div style="padding:16px 32px;text-align:center;font-size:0.75rem;color:#8C7B6B">
-                Cassia Bake Studio &nbsp;·&nbsp; To unsubscribe, reply with "unsubscribe"
-              </div>
-            </div>`
+        await twilioClient.messages.create({
+          body,
+          from: process.env.TWILIO_FROM_NUMBER,
+          to: r.mobile
         });
-        results.push({ email: r.email, first_name: r.first_name, status: 'sent' });
+        results.push({ mobile: r.mobile, email: '', first_name: r.first_name, status: 'sent' });
       } catch (_) {
-        results.push({ email: r.email, first_name: r.first_name, status: 'failed' });
+        results.push({ mobile: r.mobile, email: '', first_name: r.first_name, status: 'failed' });
       }
     }
 

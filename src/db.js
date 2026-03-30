@@ -202,6 +202,11 @@ function createSchema() {
   try { db.run(`ALTER TABLE campaigns ADD COLUMN extra_emails TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
   // Add excluded_emails to campaigns if upgrading from older schema
   try { db.run(`ALTER TABLE campaigns ADD COLUMN excluded_emails TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
+  // Add SMS mobile columns to campaigns
+  try { db.run(`ALTER TABLE campaigns ADD COLUMN extra_mobiles TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
+  try { db.run(`ALTER TABLE campaigns ADD COLUMN excluded_mobiles TEXT NOT NULL DEFAULT '[]'`); } catch (_) {}
+  // Add mobile to campaign_recipients
+  try { db.run(`ALTER TABLE campaign_recipients ADD COLUMN mobile TEXT NOT NULL DEFAULT ''`); } catch (_) {}
 
   // ── Order status audit log ────────────────────────────────────────────────
   db.run(`
@@ -563,48 +568,48 @@ export function getUserByUsername(username) {
 
 export function getCampaigns() {
   return rowsToObjects(db.exec(
-    `SELECT id, title, subject, audience, extra_emails, status, recipient_count, sent_at, created_at
+    `SELECT id, title, subject, audience, extra_mobiles, status, recipient_count, sent_at, created_at
      FROM campaigns ORDER BY created_at DESC`
   )).map(c => {
     try {
-      const arr = JSON.parse(c.extra_emails || '[]');
-      c.extra_email_count = Array.isArray(arr) ? arr.length : 0;
-    } catch { c.extra_email_count = 0; }
-    delete c.extra_emails;
+      const arr = JSON.parse(c.extra_mobiles || '[]');
+      c.extra_mobile_count = Array.isArray(arr) ? arr.length : 0;
+    } catch { c.extra_mobile_count = 0; }
+    delete c.extra_mobiles;
     return c;
   });
 }
 
 export function getCampaignById(id) {
   const rows = rowsToObjects(db.exec(
-    `SELECT id, title, subject, body_html, audience, extra_emails, excluded_emails, status, recipient_count, sent_at, created_at
+    `SELECT id, title, subject, body_html, audience, extra_mobiles, excluded_mobiles, status, recipient_count, sent_at, created_at
      FROM campaigns WHERE id=?`, [id]
   ));
   if (!rows.length) return null;
   const c = rows[0];
-  try { c.extra_emails    = JSON.parse(c.extra_emails    || '[]'); } catch { c.extra_emails    = []; }
-  try { c.excluded_emails = JSON.parse(c.excluded_emails || '[]'); } catch { c.excluded_emails = []; }
+  try { c.extra_mobiles    = JSON.parse(c.extra_mobiles    || '[]'); } catch { c.extra_mobiles    = []; }
+  try { c.excluded_mobiles = JSON.parse(c.excluded_mobiles || '[]'); } catch { c.excluded_mobiles = []; }
   c.recipients = rowsToObjects(db.exec(
-    `SELECT email, first_name, status, sent_at FROM campaign_recipients WHERE campaign_id=? ORDER BY sent_at`,
+    `SELECT mobile, email, first_name, status, sent_at FROM campaign_recipients WHERE campaign_id=? ORDER BY sent_at`,
     [id]
   ));
   return c;
 }
 
-export function createCampaign({ title, subject, body_html, audience, extra_emails = [], excluded_emails = [] }) {
+export function createCampaign({ title, subject, body_html, audience, extra_mobiles = [], excluded_mobiles = [] }) {
   db.run(
-    `INSERT INTO campaigns (title, subject, body_html, audience, extra_emails, excluded_emails) VALUES (?,?,?,?,?,?)`,
-    [title, subject, body_html, audience, JSON.stringify(extra_emails), JSON.stringify(excluded_emails)]
+    `INSERT INTO campaigns (title, subject, body_html, audience, extra_mobiles, excluded_mobiles) VALUES (?,?,?,?,?,?)`,
+    [title, subject, body_html, audience, JSON.stringify(extra_mobiles), JSON.stringify(excluded_mobiles)]
   );
   const row = rowsToObjects(db.exec(`SELECT last_insert_rowid() AS id`))[0];
   persist();
   return row.id;
 }
 
-export function updateCampaign(id, { title, subject, body_html, audience, extra_emails = [], excluded_emails = [] }) {
+export function updateCampaign(id, { title, subject, body_html, audience, extra_mobiles = [], excluded_mobiles = [] }) {
   db.run(
-    `UPDATE campaigns SET title=?, subject=?, body_html=?, audience=?, extra_emails=?, excluded_emails=?, updated_at=datetime('now') WHERE id=? AND status='draft'`,
-    [title, subject, body_html, audience, JSON.stringify(extra_emails), JSON.stringify(excluded_emails), id]
+    `UPDATE campaigns SET title=?, subject=?, body_html=?, audience=?, extra_mobiles=?, excluded_mobiles=?, updated_at=datetime('now') WHERE id=? AND status='draft'`,
+    [title, subject, body_html, audience, JSON.stringify(extra_mobiles), JSON.stringify(excluded_mobiles), id]
   );
   persist();
 }
@@ -618,8 +623,8 @@ export function deleteCampaign(id) {
 export function markCampaignSent(id, recipients) {
   for (const r of recipients) {
     db.run(
-      `INSERT INTO campaign_recipients (campaign_id, email, first_name, status) VALUES (?,?,?,?)`,
-      [id, r.email, r.first_name, r.status]
+      `INSERT INTO campaign_recipients (campaign_id, email, mobile, first_name, status) VALUES (?,?,?,?,?)`,
+      [id, r.email || '', r.mobile || '', r.first_name, r.status]
     );
   }
   const sent = recipients.filter(r => r.status === 'sent').length;
@@ -691,14 +696,14 @@ export function deletePromo(id) {
 export function resolveCampaignAudience(audience) {
   let sql;
   if (audience === 'all') {
-    sql = `SELECT DISTINCT email, first_name FROM orders WHERE email != '' ORDER BY email`;
+    sql = `SELECT DISTINCT mobile, first_name FROM orders WHERE mobile != '' ORDER BY mobile`;
   } else if (audience === 'repeat') {
-    sql = `SELECT email, first_name FROM orders WHERE email != ''
-           GROUP BY email HAVING COUNT(*) > 1 ORDER BY email`;
+    sql = `SELECT mobile, first_name FROM orders WHERE mobile != ''
+           GROUP BY mobile HAVING COUNT(*) > 1 ORDER BY mobile`;
   } else if (audience === 'completed') {
-    sql = `SELECT DISTINCT email, first_name FROM orders WHERE status='completed' AND email != '' ORDER BY email`;
+    sql = `SELECT DISTINCT mobile, first_name FROM orders WHERE status='completed' AND mobile != '' ORDER BY mobile`;
   } else if (audience === 'pending') {
-    sql = `SELECT DISTINCT email, first_name FROM orders WHERE status IN ('pending','confirmed','ready') AND email != '' ORDER BY email`;
+    sql = `SELECT DISTINCT mobile, first_name FROM orders WHERE status IN ('pending','confirmed','ready') AND mobile != '' ORDER BY mobile`;
   } else {
     return [];
   }
