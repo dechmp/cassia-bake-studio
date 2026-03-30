@@ -361,9 +361,6 @@ document.querySelector('#app').innerHTML = `
 <!-- LANDING PAGE -->
 <div id="landing-view" class="landing-view">
 
-  <!-- Active promo banner (injected by JS) -->
-  <div id="landing-promo-banner" style="display:none;"></div>
-
   <section class="landing-section" style="padding-top:48px;">
     <div class="landing-section-header">
       <p class="landing-section-eyebrow">Crowd Favourites</p>
@@ -746,45 +743,6 @@ const menuData = {
     ]
   }
 };
-
-// ── Active promo banner ───────────────────────────────────────────────────────
-(async () => {
-  try {
-    const res = await fetch('http://localhost:3001/api/promo/active');
-    if (!res.ok) return;
-    const p = await res.json();
-    if (!p) return;
-
-    const dismissed = sessionStorage.getItem(`promo-dismissed-${p.id}`);
-    if (dismissed) return;
-
-    const bgClass = `landing-promo-bg-${['brown','caramel','dark','blush'].includes(p.bg) ? p.bg : 'brown'}`;
-    const banner = document.getElementById('landing-promo-banner');
-    banner.innerHTML = `
-      <div class="landing-promo ${bgClass}">
-        <div class="landing-promo-inner">
-          <div class="landing-promo-left">
-            ${p.badge ? `<span class="landing-promo-badge">${p.badge}</span>` : ''}
-            <h2 class="landing-promo-title">${p.title}</h2>
-            ${p.subtitle ? `<p class="landing-promo-subtitle">${p.subtitle}</p>` : ''}
-          </div>
-          <div class="landing-promo-right">
-            <button class="landing-promo-cta">${p.cta_label || 'Shop Now'}</button>
-            <button class="landing-promo-dismiss" aria-label="Dismiss">✕</button>
-          </div>
-        </div>
-      </div>`;
-    banner.style.display = '';
-
-    banner.querySelector('.landing-promo-cta').addEventListener('click', () => {
-      document.getElementById('menu-nav-btn')?.click();
-    });
-    banner.querySelector('.landing-promo-dismiss').addEventListener('click', () => {
-      sessionStorage.setItem(`promo-dismissed-${p.id}`, '1');
-      banner.style.display = 'none';
-    });
-  } catch { /* server offline — fail silently */ }
-})();
 
 // ── View switching (landing ↔ main) ───────────────────────────────────────────
 function showView(view) {
