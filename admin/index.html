@@ -1738,8 +1738,8 @@
       showToast(`Sent to ${data.sent} recipient${data.sent !== 1 ? 's' : ''}${data.failed ? ` (${data.failed} failed)` : ''}.`, data.failed ? 'error' : 'success');
       resetCampaignForm();
       loadCampaigns();
-    } catch {
-      showToast('Failed to send campaign.', 'error');
+    } catch (err) {
+      showToast(err.message || 'Failed to send campaign.', 'error');
       btn.disabled = false;
       btn.textContent = 'Send Campaign';
     }

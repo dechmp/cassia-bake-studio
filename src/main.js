@@ -292,6 +292,7 @@ document.querySelector('#app').innerHTML = `
     <button class="mobile-nav-btn" id="mobile-craft-link">Our Craft <span class="mobile-nav-arrow">→</span></button>
     <button class="mobile-nav-btn mobile-nav-subbtn" id="mobile-founder-btn">Our Founder <span class="mobile-nav-arrow">→</span></button>
     <button class="mobile-nav-btn mobile-nav-subbtn" id="mobile-team-btn">Our Team <span class="mobile-nav-arrow">→</span></button>
+    <button class="mobile-nav-btn" id="mobile-contact-btn">Contact Us <span class="mobile-nav-arrow">→</span></button>
   </nav>
   <div class="mobile-nav-footer">
     <div class="mobile-nav-social">
@@ -1167,6 +1168,7 @@ document.getElementById('craft-nav-btn').addEventListener('click', () => {
   });
 });
 document.getElementById('mobile-craft-link').addEventListener('click', () => { closeMobileNav(); showView('main'); });
+document.getElementById('mobile-contact-btn').addEventListener('click', () => { closeMobileNav(); showView('contact'); });
 document.getElementById('mobile-menu-btn').addEventListener('click', () => {
   closeMobileNav(); openMenuPanel();
 });

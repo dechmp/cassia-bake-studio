@@ -37,7 +37,7 @@ Single-file architecture with no bundling of JS modules. Key systems:
 ### Backend (`server.js`)
 
 Two endpoints:
-- `POST /api/send-order` — Validates order fields, sends HTML email via Nodemailer to `dechmp@gmail.com`
+- `POST /api/send-order` — Validates order fields, sends HTML email via Nodemailer to `dechmp@zohomail.in`
 - `POST /api/create-payment-intent` — Creates a Stripe PaymentIntent in INR (partially implemented)
 
 Email transport:

@@ -34,6 +34,9 @@ const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_T
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Trust proxy headers (required when behind ngrok / reverse proxy)
+app.set('trust proxy', 1);
+
 // ── Security headers ────────────────────────────────────────────────────────
 app.use(helmet({
   contentSecurityPolicy: false // Vite handles CSP on the frontend

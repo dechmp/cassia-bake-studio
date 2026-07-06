@@ -466,7 +466,19 @@
   .inv-table td:nth-child(4),
   .inv-table th:nth-child(5),
   .inv-table td:nth-child(5) { display: none; }
-  .inv-toolbar { gap: 8px; }
+  .inv-toolbar { gap: 8px; flex-direction: column; }
+  .inv-search  { max-width: 100%; width: 100%; }
+  .inv-cat-filter { width: 100%; }
   .inv-add-btn { margin-left: 0; width: 100%; text-align: center; }
   #inv-item-form { padding: 20px 16px; }
+  .inv-tab-btn { padding: 10px 12px; font-size: 0.58rem; }
+  .inv-page-title { font-size: 0.95rem; }
+  .inv-back-btn { font-size: 0.55rem; }
+  /* Make table horizontally scrollable */
+  .inv-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .inv-table { min-width: 480px; }
+  /* Modal improvements */
+  .inv-modal { max-width: calc(100% - 24px); }
+  .inv-modal-header { padding: 18px 16px; }
+  .inv-modal-header h3 { font-size: 1.2rem; }
 }

@@ -165,7 +165,7 @@ body::after {
    WELCOME BAR
 ═══════════════════════════════════════════════════════════════════ */
 .welcome-bar {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 102;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9997;
   height: var(--welcome-bar-h);
   background: var(--brown); color: var(--cream);
   display: flex; align-items: center; justify-content: flex-end;
@@ -220,10 +220,10 @@ body.user-logged-in .home-product-detail { scroll-margin-top: calc(var(--nav-h) 
    NAV
 ═══════════════════════════════════════════════════════════════════ */
 nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9996;
   display: flex; justify-content: space-between; align-items: center;
   padding: 0 var(--px); height: var(--nav-h);
-  background: var(--warm-white); border-bottom: 1px solid var(--border);
+  background: #ffffff; border-bottom: 1px solid var(--border);
 }
 
 .nav-brand  { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
@@ -316,18 +316,18 @@ nav {
    MOBILE NAV OVERLAY
 ═══════════════════════════════════════════════════════════════════ */
 .mobile-nav-overlay {
-  position: fixed; top: var(--nav-h); left: 0; right: 0; bottom: 0; z-index: 150;
-  background: var(--warm-white);
-  display: flex; flex-direction: column;
-  padding: 20px var(--px) 40px;
+  position: fixed; top: var(--nav-h); left: 0; right: 0; bottom: 0;
+  z-index: 9995;
+  background: #ffffff;
+  padding: 0 var(--px);
   transform: translateX(100%);
   transition: transform .4s cubic-bezier(.25,.46,.45,.94);
-  overflow-y: auto;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 .mobile-nav-overlay.open { transform: translateX(0); }
 
 .mobile-user-section {
-  border-bottom: 2px solid var(--caramel); margin-bottom: 8px; padding-bottom: 4px;
+  border-bottom: 2px solid var(--caramel); margin-bottom: 8px; padding: 20px 0 4px;
 }
 .mobile-nav-greeting {
   font-family: 'Cormorant Garamond', serif; font-size: clamp(1.2rem, 4.5vw, 1.6rem);
@@ -336,24 +336,31 @@ nav {
 }
 .mobile-signout-btn-item { color: var(--muted) !important; }
 .mobile-signout-btn-item:hover { color: var(--red) !important; }
-.mobile-signin-top { border-top: 1px solid var(--border); }
+.mobile-signin-top { border-top: none; margin-top: 20px; }
 
-.mobile-nav-links { display: flex; flex-direction: column; flex: 1; }
+.mobile-nav-links { display: block; padding: 0; margin: 0; }
 .mobile-nav-btn {
-  width: 100%; text-align: left; background: none; border: none;
-  border-bottom: 1px solid var(--border); padding: 18px 0;
+  display: block; width: 100%;
+  text-align: left; background: none; border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
   font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(1.6rem, 6vw, 2rem); font-weight: 300;
+  font-size: 1.5rem; font-weight: 300;
   color: var(--dark); cursor: pointer; text-decoration: none;
-  display: flex; align-items: center; justify-content: space-between;
   transition: color .2s;
+  position: relative;
+  box-sizing: border-box;
+  line-height: 1.3;
 }
 .mobile-nav-btn:first-child { border-top: 1px solid var(--border); }
 .mobile-nav-btn:hover { color: var(--caramel); }
-.mobile-nav-btn .mobile-nav-arrow { font-size: 1rem; color: var(--muted); }
-.mobile-nav-subbtn { padding-left: 24px; font-size: clamp(1.2rem, 4vw, 1.5rem); color: var(--muted); }
+.mobile-nav-btn .mobile-nav-arrow {
+  font-size: 1rem; color: var(--muted);
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+}
+.mobile-nav-subbtn { padding-left: 24px; font-size: 1.15rem; color: var(--muted); }
 
-.mobile-nav-footer { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
+.mobile-nav-footer { margin-top: 32px; padding: 24px 0 40px; border-top: 1px solid var(--border); }
 .mobile-nav-social { display: flex; gap: 12px; margin-bottom: 16px; }
 .mobile-nav-info {
   font-family: 'DM Mono', monospace; font-size: 0.56rem;
@@ -1613,41 +1620,17 @@ a.contact-detail-value:hover { color: var(--caramel); }
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   SMALL SCREENS  ≥ 360px cart form 2-col
+   SMALL SCREENS  ≥ 480px cart form 2-col
 ══════════════════════════════════════════════════════════════════ */
-@media (min-width: 360px) {
+@media (min-width: 480px) {
   .cart-form-row { grid-template-columns: 1fr 1fr; }
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   SMALL PHONE OVERRIDES  ≤ 479px
+   MOBILE OVERRIDES  ≤ 639px  (below the 640px tablet breakpoint)
 ══════════════════════════════════════════════════════════════════ */
-@media (max-width: 479px) {
-  /* Modals — add horizontal breathing room */
-  .login-modal { padding: 28px 18px; }
-  .my-orders-modal { width: calc(100% - 32px); margin: 0 16px; }
-  .founder-modal-overlay { padding: 12px; }
-
-  /* Reduce cart drawer side padding on tiny screens */
-  .cart-items { padding: 16px 16px; }
-  .cart-footer { padding: 16px 16px 28px; }
-  .cart-drawer-header { padding: 0 16px; }
-
-  /* Product detail nav arrows smaller on tiny screens */
-  .home-product-arrow { width: 36px; height: 52px; font-size: 1.6rem; }
-
-  /* Showcase single column on phones ≤ 479px */
-  .product-showcase { grid-template-columns: 1fr; }
-
-  /* Landing products single column */
-  .landing-products-grid { grid-template-columns: 1fr; }
-  .landing-product-img { height: 200px; }
-
-  /* Hero CTA stack */
-  .hero-cta { flex-direction: column; align-items: flex-start; }
-  .landing-hero-cta { flex-direction: column; }
-
-  /* Process steps single column */
+@media (max-width: 639px) {
+  /* Process steps single column on phones */
   .process-steps { grid-template-columns: 1fr; }
   .step, .step:nth-child(even) {
     padding: 20px 0 !important;
@@ -1656,21 +1639,137 @@ a.contact-detail-value:hover { color: var(--caramel); }
   }
   .step:last-child { border-bottom: none !important; }
 
-  /* Promo banner stacks already via flex-wrap; shrink padding */
-  .landing-promo-inner { padding: 20px var(--px); }
+  /* Hero — better vertical spacing */
+  .hero-right { min-height: 200px; }
+  .hero-left { padding: 28px var(--px) 36px; }
+  .hero-subtitle { margin-bottom: 24px; }
 
-  /* Footer bottom column */
-  .footer-bottom { flex-direction: column; gap: 6px; }
+  /* Hero CTA stack vertically */
+  .hero-cta { flex-direction: column; align-items: stretch; gap: 12px; }
+  .hero-cta .btn-primary,
+  .hero-cta .btn-deals { width: 100%; text-align: center; justify-content: center; }
+  .landing-hero-cta { flex-direction: column; }
+  .landing-hero-cta .btn-primary { width: 100%; text-align: center; justify-content: center; }
 
-  /* Order meta wrap tighter */
+  /* Product showcase 2-col with better sizing */
+  .product-showcase { gap: 2px; }
+  .showcase-body { padding: 12px 12px 16px; }
+  .showcase-desc { font-size: 0.78rem; line-height: 1.5; margin-bottom: 6px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  /* Product detail — full-width image, better body */
+  .home-product-img-wrap { height: clamp(200px, 55vw, 300px); }
+  .home-product-body { padding: 20px var(--px) 28px; }
+  .home-product-footer { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .home-product-footer .btn-add-cart { width: 100%; text-align: center; }
+
+  /* Landing page products grid — 2 col on phones */
+  .landing-products-grid { gap: 12px; }
+  .landing-product-img { height: 160px; }
+  .landing-product-body { padding: 12px; }
+  .landing-product-name { font-size: 1rem; }
+
+  /* Deal card — tighter padding */
+  .landing-deal-img { height: 200px; }
+  .landing-deal-body { padding: 24px var(--px); }
+  .landing-deal-name { margin-bottom: 8px; }
+
+  /* Chef's recommendation — tighter */
+  .landing-chefs-img { height: 220px; }
+  .landing-chefs-body { padding: 20px; }
+
+  /* Contact page */
+  .contact-hero { padding: calc(var(--nav-h) + 32px) var(--px) 32px; }
+  .contact-content { padding: 32px var(--px) 48px; }
+  .contact-map iframe { height: 240px; }
+
+  /* Modals — full width on mobile */
+  .login-modal { padding: 28px 20px; max-width: calc(100% - 32px); }
+  .my-orders-modal { width: calc(100% - 32px); margin: 0 16px; max-height: 85vh; }
+  .founder-modal-overlay { padding: 12px; }
+  .founder-modal { max-width: 100%; }
+
+  /* Cart drawer full width */
+  .cart-items { padding: 16px; }
+  .cart-footer { padding: 16px 16px 28px; }
+  .cart-drawer-header { padding: 0 16px; }
+  .cart-item { flex-wrap: wrap; gap: 8px; }
+  .cart-item-controls { gap: 8px; }
+
+  /* Cart form — single column on phones */
+  .cart-form-row { grid-template-columns: 1fr; }
+
+  /* Order section — vertical layout */
+  .order-section { display: block; }
+  .order-text { margin-bottom: 32px; }
   .order-meta { gap: 16px 20px; }
+  .form-row { grid-template-columns: 1fr; }
+  .btn-submit { width: 100%; }
+
+  /* Footer — single column, tighter */
+  .footer-top { grid-template-columns: 1fr; gap: 28px; }
+  .footer-bottom { flex-direction: column; gap: 6px; }
+  footer { padding: 36px var(--px) 24px; }
+
+  /* Promo banner stacks; shrink padding */
+  .landing-promo-inner { padding: 20px var(--px); flex-direction: column; align-items: flex-start; }
+  .landing-promo-right { width: 100%; }
+  .landing-promo-cta { width: 100%; text-align: center; }
 
   /* Welcome bar greeting truncate */
   .welcome-bar-greeting { font-size: 0.82rem; }
 
-  /* Deals button smaller on very small screens */
+  /* Testimonial section */
+  .testimonial { padding: 48px var(--px); }
+  .testimonial-text { font-size: clamp(1rem, 4.5vw, 1.4rem); }
+
+  /* Landing CTA section */
+  .landing-cta-section { padding: 48px var(--px) 56px; }
+
+  /* Section titles sizing */
+  .section-title { font-size: clamp(1.8rem, 7vw, 3rem); }
+
+  /* Buttons — ensure touch-friendly sizing */
+  .btn-primary { padding: 14px 24px; min-height: 48px; }
+  .btn-add-cart { padding: 12px 18px; min-height: 46px; }
+  .btn-secondary { min-height: 44px; }
+
+  /* My Orders cards */
+  .my-order-header { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .my-order-meta { flex-direction: column; gap: 4px; }
+
+  /* Product detail nav arrows */
+  .home-product-arrow { width: 36px; height: 52px; font-size: 1.6rem; }
+
+  /* Deals button */
   .btn-deals { padding: 12px 18px; font-size: 0.6rem; }
   .btn-deals-tag { font-size: 0.55rem; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SMALL PHONE OVERRIDES  ≤ 479px
+══════════════════════════════════════════════════════════════════ */
+@media (max-width: 479px) {
+  /* Showcase single column on very small phones */
+  .product-showcase { grid-template-columns: 1fr; }
+  .showcase-img-wrap { height: 200px; }
+  .showcase-body { padding: 14px 16px 18px; }
+
+  /* Landing products single column */
+  .landing-products-grid { grid-template-columns: 1fr; }
+  .landing-product-img { height: 200px; }
+
+  /* Nav brand even smaller */
+  .nav-logo-text { font-size: 0.9rem; max-width: 110px; }
+  .nav-logo-img { height: 38px; width: 38px; }
+
+  /* Login modal full width */
+  .login-modal { padding: 24px 16px; max-width: calc(100% - 24px); }
+
+  /* Tighter section padding */
+  .landing-section { padding: 36px var(--px); }
+  .landing-deal-section { padding: 0 var(--px) 36px; }
 }
 
 /* ── Landing promo banner ──────────────────────────────────────────────────── */
